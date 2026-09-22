@@ -42,6 +42,8 @@ __screenshots__/
 # Runtime logs (daily rotation: app.log → app.YYYY-MM-DD.log)
 /logs
 
+/uploads
+
 # System files
 .DS_Store
 Thumbs.db
