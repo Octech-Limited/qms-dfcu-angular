@@ -1,0 +1,1 @@
+export const EXPIRED_AD_RETENTION_DAYS = 30;
