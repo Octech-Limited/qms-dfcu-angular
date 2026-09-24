@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, gte, inArray, lt } from 'drizzle-orm';
-import { randomUUID } from 'node:crypto';
+import { uuidV7 } from './ids';
 import { db } from './db';
 import { banktickets, counters, queues } from './db/schema';
 import { TICKET_STATUS, todayRange } from './ticketStatus';
@@ -98,7 +98,7 @@ export async function createTicket(input: {
 }) {
 	const now = eatNow();
 	const ticketNo = await generateTicketNumber(input.branchId);
-	const id = randomUUID();
+	const id = uuidV7();
 	await db.insert(banktickets).values({
 		id,
 		ticketNo,

@@ -15,7 +15,8 @@ export type Ticket = {
     | 'Hold'
     | 'Redirected'
     | 'Cancelled'
-    | 'No Show';
+    | 'No Show'
+    | 'Expired';
   counterId: string | null;
   pendingRedirectAcceptance?: boolean;
   callAgain?: boolean;

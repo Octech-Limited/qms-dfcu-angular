@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>db.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="database-guide">Database guide</h1>
+<p>This document describes the SQL Server schema used by <strong>Q Simplified</strong> (QMS Angular), as defined in <a href="../src/server/db/schema.ts"><code>src/server/db/schema.ts</code></a>.</p>
+<p>IDs are string UUIDs (<code>nvarchar</code>). Foreign keys are <strong>logical</strong> (enforced in the BFF), not always declared as SQL constraints in Drizzle.</p>
+<hr>
+<h2 id="contents">Contents</h2>
+<ul>
+<li><a href="#entity-overview">Entity overview</a></li>
+<li><a href="#table-reference">Table reference</a></li>
+<li><a href="#relationships">Relationships</a></li>
+<li><a href="#serving-tickets--lifecycle">Serving tickets — lifecycle</a></li>
+<li><a href="#usage-scenarios">Usage scenarios</a></li>
+<li><a href="#indexes-worth-knowing">Indexes worth knowing</a></li>
+</ul>
+<hr>
+<h2 id="entity-overview">Entity overview</h2>
+<pre><code class="language-mermaid"><div class="mermaid">erDiagram
+  branches ||--o{ users : "branchId"
+  roles ||--o{ users : "roleId"
+  branches ||--o{ counters : "branchId"
+  users ||--o{ counters : "userId"
+  queues ||--o{ counters : "queueId"
+  queues ||--o{ sub_menu_items : "queueId"
+  sub_menu_items ||--o{ sub_sub_menu_items : "subMenuItemId"
+  queues ||--o{ banktickets : "queueId"
+  branches ||--o{ banktickets : "branchId"
+  counters ||--o{ banktickets : "counterId"
+  banktickets ||--o{ ticket_services : "ticketId"
+  banktickets ||--o{ ticket_announcements : "ticketId"
+  counters ||--o{ counter_availability_events : "counterId"
+  ads ||--o{ ad_branches : "adId"
+  branches ||--o{ ad_branches : "branchId"
+  users ||--o{ user_sessions : "userId"
+</div></code></pre>
+<hr>
+<h2 id="table-reference">Table reference</h2>
+<h3 id="organization--access">Organization &amp; access</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>settings</code></strong></td>
+<td>Single-tenant company profile: name, contact, logo, timezone preference, admin password, notification text.</td>
+</tr>
+<tr>
+<td><strong><code>branches</code></strong></td>
+<td>Physical locations. Holds kiosk and hall-display credentials, optional network/DB fields, active flag.</td>
+</tr>
+<tr>
+<td><strong><code>roles</code></strong></td>
+<td>Named permission sets (JSON string in <code>permissions</code>).</td>
+</tr>
+<tr>
+<td><strong><code>users</code></strong></td>
+<td>Staff accounts. Linked to <code>roleId</code> + <code>branchId</code>. <code>activeSessionToken</code> enforces single active dashboard/serving login.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="service-catalog">Service catalog</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>queues</code></strong></td>
+<td>Top-level service lines (e.g. Tellering, Accounts).</td>
+</tr>
+<tr>
+<td><strong><code>sub_menu_items</code></strong></td>
+<td>Services under a queue; <code>priority</code> affects claim ordering.</td>
+</tr>
+<tr>
+<td><strong><code>sub_sub_menu_items</code></strong></td>
+<td>Nested services under a sub-menu item.</td>
+</tr>
+</tbody>
+</table>
+<p>Kiosk navigation and ticket <code>issueDescription</code> / category fields derive from this tree.</p>
+<h3 id="day-to-day-operations">Day-to-day operations</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>counters</code></strong></td>
+<td>A teller’s desk assignment for <strong>today</strong>: <code>counterNumber</code>, <code>queueId</code>, optional sub-item filters, <code>available</code> flag. Scoped by <code>createdAt</code> to the EAT calendar day.</td>
+</tr>
+<tr>
+<td><strong><code>banktickets</code></strong></td>
+<td>The customer ticket: number, status, durations, rating, phone, language, multi-tx JSON, current counter/service pointers.</td>
+</tr>
+<tr>
+<td><strong><code>ticket_services</code></strong></td>
+<td>Ordered <strong>segments</strong> of a ticket’s life (wait, serve, hold, redirect). One open segment at a time (<code>endedAt</code> null).</td>
+</tr>
+<tr>
+<td><strong><code>counter_availability_events</code></strong></td>
+<td>Timeline of <code>AVAILABLE</code> / <code>PAUSED</code> for a counter (reports, utilization).</td>
+</tr>
+<tr>
+<td><strong><code>ticket_announcements</code></strong></td>
+<td>Hall audio queue: <code>initial</code>, <code>call_again</code>, hold/redirect resume types; status <code>queued</code> → playing → done/error.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="displays--marketing">Displays &amp; marketing</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>ads</code></strong></td>
+<td>Image / video / YouTube creatives with optional validity window and <code>isLive</code>.</td>
+</tr>
+<tr>
+<td><strong><code>ad_branches</code></strong></td>
+<td>Many-to-many: which branches show which ads.</td>
+</tr>
+<tr>
+<td><strong><code>announcements</code></strong></td>
+<td>Scrolling text on hall/kiosk.</td>
+</tr>
+<tr>
+<td><strong><code>announcement_types</code></strong></td>
+<td>Colors/styles for announcement kinds.</td>
+</tr>
+<tr>
+<td><strong><code>social_media</code></strong></td>
+<td>Handles shown on displays.</td>
+</tr>
+<tr>
+<td><strong><code>exchange_rates</code></strong></td>
+<td>Forex board (buying/selling, <code>displayOrder</code>).</td>
+</tr>
+</tbody>
+</table>
+<h3 id="audit--sessions">Audit &amp; sessions</h3>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>logs</code></strong></td>
+<td>Lightweight login/action notes.</td>
+</tr>
+<tr>
+<td><strong><code>user_sessions</code></strong></td>
+<td>Opened/closed actor sessions (<code>dashboard</code>, <code>serving</code>, etc.) with start/end reasons.</td>
+</tr>
+<tr>
+<td><strong><code>audit_logs</code></strong></td>
+<td>Structured before/after + metadata for config and serving actions.</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="relationships">Relationships</h2>
+<h3 id="who-owns-a-ticket">Who owns a ticket?</h3>
+<pre><code class="language-mermaid"><div class="mermaid">flowchart LR
+  Q[queues] --> T[banktickets]
+  B[branches] --> T
+  C[counters] -.->|when claimed| T
+  T --> TS[ticket_services]
+  T --> TA[ticket_announcements]
+  U[users] --> C
+  Q --> C
+</div></code></pre>
+<ul>
+<li>A ticket always belongs to a <strong>branch</strong> and a <strong>queue</strong> (plus optional sub/sub-sub item).</li>
+<li><code>counterId</code> is set when an agent claims or is assigned the ticket.</li>
+<li><code>currentServiceId</code> points at the active row in <code>ticket_services</code>.</li>
+</ul>
+<h3 id="counter--permanent-desk">Counter ≠ permanent desk</h3>
+<p><code>counters</code> rows are <strong>daily instances</strong>, not permanent fixtures:</p>
+<ul>
+<li>Same physical window “3” → new row each EAT day.</li>
+<li>Uniqueness of <code>counterNumber</code> is enforced in the API for <code>(branchId, counterNumber, today)</code>.</li>
+<li>Listing/claiming filters use <code>todayRange()</code> so yesterday’s counters disappear automatically.</li>
+</ul>
+<hr>
+<h2 id="serving-tickets--lifecycle">Serving tickets — lifecycle</h2>
+<h3 id="status-values">Status values</h3>
+<p>From <code>src/server/ticketStatus.ts</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Not Served</code></td>
+<td>Waiting in queue</td>
+</tr>
+<tr>
+<td><code>Serving</code></td>
+<td>At a counter now</td>
+</tr>
+<tr>
+<td><code>Hold</code></td>
+<td>Parking; can resume</td>
+</tr>
+<tr>
+<td><code>Redirected</code></td>
+<td>Sent to another counter (pending accept)</td>
+</tr>
+<tr>
+<td><code>Served</code></td>
+<td>Completed</td>
+</tr>
+<tr>
+<td><code>No Show</code></td>
+<td>Called but customer absent</td>
+</tr>
+<tr>
+<td><code>Cancelled</code></td>
+<td>Abandoned / cancelled</td>
+</tr>
+</tbody>
+</table>
+<h3 id="segment-model-ticket_services">Segment model (<code>ticket_services</code>)</h3>
+<p>Each status stretch is a <strong>segment</strong> with <code>sequence</code>, <code>startedAt</code>, optional <code>endedAt</code>, <code>duration</code>, <code>endReason</code>, and optional redirect from/to counters.</p>
+<pre><code class="language-mermaid"><div class="mermaid">stateDiagram-v2
+  [*] --> NotServed: kiosk create
+  NotServed --> Serving: claim
+  Serving --> Hold: hold
+  Hold --> Serving: resume
+  Serving --> Redirected: redirect
+  Redirected --> Serving: target claims
+  Serving --> Served: complete
+  Serving --> NoShow: no show
+  Serving --> Cancelled: cancel
+  Served --> [*]
+  NoShow --> [*]
+  Cancelled --> [*]
+</div></code></pre>
+<h3 id="hall-announcements">Hall announcements</h3>
+<p>When a ticket is claimed (or call-again / resume), the BFF inserts <code>ticket_announcements</code>. The hall display polls, plays audio clips for <code>ticketNo</code> + counter, then marks the announcement complete.</p>
+<hr>
+<h2 id="usage-scenarios">Usage scenarios</h2>
+<h3 id="1-issue-a-ticket-kiosk">1. Issue a ticket (kiosk)</h3>
+<ol>
+<li>Customer picks queue → optional sub/sub-sub → language → optional phone.</li>
+<li>API creates <code>banktickets</code> with status <strong><code>Not Served</code></strong>, generates today’s <code>ticketNo</code>.</li>
+<li>Opens first <code>ticket_services</code> wait segment (<code>openInitialWaitSegment</code>).</li>
+<li>If phone present → deferred <strong>VMS SMS</strong> with ticket + queue position.</li>
+</ol>
+<p><strong>Tables:</strong> <code>banktickets</code>, <code>ticket_services</code>, <code>queues</code> (+ menu tables), <code>settings</code>/<code>branches</code> (SMS footer).</p>
+<h3 id="2-agent-opens-a-counter-serving">2. Agent opens a counter (serving)</h3>
+<ol>
+<li>Teller logs in → <code>user_sessions</code> + iron <code>auth-session</code> (expires EAT end of day).</li>
+<li>Chooses <strong>counter number</strong> + primary <strong>queue</strong> (must be free <strong>today</strong> at that branch).</li>
+<li>Insert <code>counters</code> + <code>counter_availability_events</code> (<code>AVAILABLE</code>).</li>
+<li>Session patched with <code>counterId</code>.</li>
+</ol>
+<p><strong>Tables:</strong> <code>counters</code>, <code>counter_availability_events</code>, <code>user_sessions</code>, <code>users</code>.</p>
+<h3 id="3-claim-next-customer">3. Claim next customer</h3>
+<ol>
+<li><code>findClaimableTicket</code>: prefer pending redirects for this counter, else oldest matching <strong>Not Served</strong> for today (queue/sub-item rules, priority).</li>
+<li>Transition to <strong><code>Serving</code></strong>; close wait segment; open serving segment (<code>endReason: claimed</code>).</li>
+<li>Queue <strong><code>ticket_announcements</code></strong> (<code>initial</code>) for hall audio.</li>
+</ol>
+<p><strong>Tables:</strong> <code>banktickets</code>, <code>ticket_services</code>, <code>ticket_announcements</code>, <code>counters</code>.</p>
+<h3 id="4-hold">4. Hold</h3>
+<ol>
+<li>Status → <strong><code>Hold</code></strong>; serving segment ends (<code>held</code>); hold segment starts; optional <code>holdComment</code>.</li>
+<li>Later resume → <strong><code>Serving</code></strong> again (<code>resumed</code>); may announce on hall.</li>
+</ol>
+<p><strong>Tables:</strong> <code>banktickets</code>, <code>ticket_services</code>, optionally <code>ticket_announcements</code>.</p>
+<h3 id="5-redirect-to-another-counter">5. Redirect to another counter</h3>
+<ol>
+<li>Status → <strong><code>Redirected</code></strong>; <code>pendingRedirectAcceptance</code>; segment records <code>redirectedFromCounterId</code> / <code>redirectedToCounterId</code>.</li>
+<li>Target agent’s next claim picks up the redirected ticket first.</li>
+<li>Acceptance → <strong><code>Serving</code></strong> on the new counter; hall may announce.</li>
+</ol>
+<p><strong>Tables:</strong> <code>banktickets</code>, <code>ticket_services</code>, <code>ticket_announcements</code>, <code>counters</code>.</p>
+<h3 id="6-complete--no-show--cancel">6. Complete / no-show / cancel</h3>
+<ol>
+<li>Status → <strong><code>Served</code></strong>, <strong><code>No Show</code></strong>, or <strong><code>Cancelled</code></strong>.</li>
+<li>Open <code>ticket_services</code> segment closed; duration fields on <code>banktickets</code> updated.</li>
+<li>On <strong>Served</strong> + phone + feedback URL → SMS with <code>/rating/:ticketId</code>.</li>
+</ol>
+<p><strong>Tables:</strong> <code>banktickets</code>, <code>ticket_services</code>; SMS uses <code>settings</code> + <code>branches</code> for sender line.</p>
+<h3 id="7-customer-rates-service">7. Customer rates service</h3>
+<p><strong>Walk-up:</strong> <code>/feedback/login</code> → branch → search today’s <code>ticketNo</code> → write <code>rating</code> / <code>ratingComment</code> (once).</p>
+<p><strong>SMS link:</strong> <code>/rating/:id</code> loads ticket by id and submits the same fields.</p>
+<p><strong>Tables:</strong> <code>banktickets</code> only (rating columns). Search is constrained to <strong>today</strong> + branch.</p>
+<h3 id="8-pause-counter">8. Pause counter</h3>
+<p>Teller toggles availability → <code>counters.available</code> + <code>counter_availability_events</code> (<code>PAUSED</code> / <code>AVAILABLE</code>). Affects “available counters” lists and reports, not historical tickets.</p>
+<hr>
+<h2 id="indexes-worth-knowing">Indexes worth knowing</h2>
+<p>These support the hottest serving queries:</p>
+<table>
+<thead>
+<tr>
+<th>Table</th>
+<th>Index (approx.)</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>banktickets</code></td>
+<td><code>(branchId, ticketStatus, createdAt)</code></td>
+<td>Today’s queue by status</td>
+</tr>
+<tr>
+<td><code>banktickets</code></td>
+<td><code>(counterId, ticketStatus, createdAt)</code></td>
+<td>Desk workload</td>
+</tr>
+<tr>
+<td><code>ticket_services</code></td>
+<td><code>(ticketId, sequence)</code> unique</td>
+<td>Ordered history</td>
+</tr>
+<tr>
+<td><code>ticket_services</code></td>
+<td><code>(counterId, ticketStatus, endedAt)</code></td>
+<td>Segment stats</td>
+</tr>
+<tr>
+<td><code>ticket_announcements</code></td>
+<td><code>status</code>, <code>queuedAt</code>, <code>(ticketId, attemptNumber)</code></td>
+<td>Hall playback queue</td>
+</tr>
+<tr>
+<td><code>counters</code></td>
+<td>sub-item indexes</td>
+<td>Category filters</td>
+</tr>
+<tr>
+<td><code>users</code></td>
+<td><code>activeSessionToken</code></td>
+<td>Single-session enforcement</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="related-files">Related files</h2>
+<table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Schema</td>
+<td><code>src/server/db/schema.ts</code></td>
+</tr>
+<tr>
+<td>Status / end reasons</td>
+<td><code>src/server/ticketStatus.ts</code></td>
+</tr>
+<tr>
+<td>Create / number gen</td>
+<td><code>src/server/tickets.ts</code></td>
+</tr>
+<tr>
+<td>Transitions / segments</td>
+<td><code>src/server/ticketService.ts</code></td>
+</tr>
+<tr>
+<td>Day boundaries (EAT)</td>
+<td><code>src/server/timezone.ts</code></td>
+</tr>
+<tr>
+<td>HTTP API</td>
+<td><code>src/server/api/index.ts</code></td>
+</tr>
+</tbody>
+</table>
+
+</body>
+</html>

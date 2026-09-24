@@ -1,14 +1,7 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import {
-  Eye,
-  EyeOff,
-  LoaderCircle,
-  LockKeyhole,
-  LucideAngularModule,
-  UserRound,
-} from 'lucide-angular';
+import { Eye, EyeOff, LoaderCircle, LucideAngularModule } from 'lucide-angular';
 import { ApiService } from '../../core/api.service';
 import { ToastService } from '../../core/toast.service';
 import {
@@ -36,15 +29,16 @@ import {
   template: `
     <div class="app-login-bg flex min-h-screen items-center justify-center bg-cover bg-center p-6">
       <ui-card class="w-[350px] max-w-full">
-        <ui-card-header>
-          <div
-            class="mb-2 flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary"
-          >
-            <lucide-angular
-              [img]="mode === 'admin' ? icons.LockKeyhole : icons.UserRound"
-              class="size-5"
-            ></lucide-angular>
-          </div>
+        <ui-card-header class="justify-items-center text-center">
+          @if (logoImage()) {
+            <div class="mb-2 flex items-center justify-center rounded-lg bg-primary px-4 py-2">
+              <img
+                [src]="logoImage()"
+                alt="Company logo"
+                class="h-16 w-auto max-w-[200px] object-contain"
+              />
+            </div>
+          }
           <ui-card-title>{{ title }}</ui-card-title>
           <ui-card-description>{{ description }}</ui-card-description>
         </ui-card-header>
@@ -122,10 +116,12 @@ export class LoginPage implements OnInit {
   password = '';
   loading = signal(false);
   showPassword = signal(false);
-  readonly icons = { Eye, EyeOff, LoaderCircle, LockKeyhole, UserRound };
+  logoImage = signal<string | null>(null);
+  readonly icons = { Eye, EyeOff, LoaderCircle };
 
   ngOnInit() {
     this.mode = String(this.route.snapshot.data['mode'] || 'user');
+    void this.loadLogo();
     this.title =
       this.mode === 'admin'
         ? 'Admin Login'
@@ -144,6 +140,16 @@ export class LoginPage implements OnInit {
           : this.mode === 'display'
             ? 'Enter the hall display credentials'
             : 'Enter your credentials to log in';
+  }
+
+  private async loadLogo() {
+    try {
+      const settings = await this.api.get<{ logoImage?: string | null }>('/api/bank/settings');
+      const logo = settings?.logoImage;
+      this.logoImage.set(typeof logo === 'string' && logo ? logo : null);
+    } catch {
+      this.logoImage.set(null);
+    }
   }
 
   async submit() {

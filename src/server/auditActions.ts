@@ -12,7 +12,9 @@ export const AUDIT_ACTION = {
 	AUTH_LOGIN_FAILED: 'auth.login_failed',
 	AUTH_LOGOUT: 'auth.logout',
 	AUTH_SESSION_TERMINATED: 'auth.session_terminated',
-	PAGE_VIEW: 'page.view'
+	PAGE_VIEW: 'page.view',
+	SERVING_AVAILABLE: 'serving.available',
+	SERVING_PAUSED: 'serving.paused'
 } as const;
 
 export type AuditAction = (typeof AUDIT_ACTION)[keyof typeof AUDIT_ACTION] | string;

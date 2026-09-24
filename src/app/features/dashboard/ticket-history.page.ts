@@ -133,7 +133,8 @@ type TicketServiceHistoryItem = {
                       <td class="px-4 py-3 font-medium">{{ ticket.ticketNo }}</td>
                       <td class="px-4 py-3">
                         <span
-                          class="inline-flex items-center rounded-md bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
+                          class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
+                          [class]="statusBadgeClass(ticket.ticketStatus)"
                           >{{ ticket.ticketStatus }}</span
                         >
                       </td>
@@ -282,6 +283,7 @@ export class TicketHistoryPage implements OnInit {
     if (status === 'Serving') return 'bg-primary text-primary-foreground';
     if (status === 'Hold') return 'bg-secondary text-secondary-foreground';
     if (status === 'Redirected') return 'border bg-background';
+    if (status === 'Expired') return 'bg-muted text-muted-foreground';
     return 'bg-secondary text-secondary-foreground';
   }
 

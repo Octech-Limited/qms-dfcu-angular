@@ -7,7 +7,8 @@ export const TICKET_STATUS = {
 	HOLD: 'Hold',
 	REDIRECTED: 'Redirected',
 	CANCELLED: 'Cancelled',
-	NO_SHOW: 'No Show'
+	NO_SHOW: 'No Show',
+	EXPIRED: 'Expired'
 } as const;
 
 export type TicketStatus = (typeof TICKET_STATUS)[keyof typeof TICKET_STATUS];
@@ -32,7 +33,8 @@ export const SERVICE_END_REASON = {
 	REDIRECTED: 'redirected',
 	SERVED: 'served',
 	CANCELLED: 'cancelled',
-	NO_SHOW: 'no_show'
+	NO_SHOW: 'no_show',
+	EXPIRED: 'expired'
 } as const;
 
 export type ServiceEndReason = (typeof SERVICE_END_REASON)[keyof typeof SERVICE_END_REASON];

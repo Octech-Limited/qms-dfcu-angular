@@ -34,8 +34,8 @@ export const routes: Routes = [
 			{ path: 'queues', loadComponent: () => import('./features/dashboard/queues.page').then((m) => m.QueuesPage) },
 			{
 				path: 'counters',
-				data: { title: 'Counters', endpoint: '/api/bank/counters', columns: ['counterNumber', 'queueId', 'available'] },
-				loadComponent: () => import('./features/dashboard/crud.page').then((m) => m.CrudPage)
+				loadComponent: () =>
+					import('./features/dashboard/counters.page').then((m) => m.CountersPage)
 			},
 			{ path: 'exchange', loadComponent: () => import('./features/dashboard/exchange.page').then((m) => m.ExchangePage) },
 			{

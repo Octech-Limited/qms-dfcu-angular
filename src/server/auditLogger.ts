@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { uuidV7 } from './ids';
 import { db } from './db';
 import { auditLogs } from './db/schema';
 import { logger } from './logger';
@@ -145,7 +145,7 @@ export async function recordActivity(payload: RecordActivityPayload): Promise<vo
 		const now = eatNow();
 
 		await db.insert(auditLogs).values({
-			id: randomUUID(),
+			id: uuidV7(),
 			collectionName,
 			documentId: payload.documentId || null,
 			operation,

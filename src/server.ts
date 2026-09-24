@@ -10,6 +10,8 @@ import { join } from 'node:path';
 import { requestContextMiddleware } from './server/requestContext';
 import { applyCspNonces, buildCSPHeader, generateCSPNonce, getSecurityHeaders } from './server/csp';
 import { registerApi } from './server/api';
+import { ensureDb } from './server/db';
+import { expireTicketsPastCreationDay } from './server/ticketService';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const app = express();
@@ -80,13 +82,30 @@ app.use((req, res, next) => {
     .catch(next);
 });
 
+let ticketExpirationStarted = false;
+
+function startTicketExpiration() {
+	if (ticketExpirationStarted) return;
+	ticketExpirationStarted = true;
+	const run = () => {
+		void ensureDb()
+			.then(() => expireTicketsPastCreationDay())
+			.catch((error) => console.error('Ticket expiration sweep failed', error));
+	};
+	run();
+	setInterval(run, 60_000);
+}
+
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
 	const port = Number(process.env['PORT'] || 4000);
 	const host = process.env['HOST'] || '0.0.0.0';
 	app.listen(port, host, (error) => {
 		if (error) throw error;
 		console.log(`Node Express server listening on http://${host}:${port}`);
+		startTicketExpiration();
 	});
+} else {
+	startTicketExpiration();
 }
 
 export const reqHandler = createNodeRequestHandler(app);

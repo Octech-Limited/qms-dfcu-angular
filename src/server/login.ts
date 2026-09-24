@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { uuidV7 } from './ids';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
 import { bankSettings, branches, logs, roles, users } from './db/schema';
@@ -51,7 +51,7 @@ async function createLog(
 
 		const now = eatNow();
 		await db.insert(logs).values({
-			id: randomUUID(),
+			id: uuidV7(),
 			userId: logUserId,
 			action,
 			details,

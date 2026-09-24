@@ -1,5 +1,5 @@
 import type { Express, Request, Response, NextFunction } from 'express';
-import { randomUUID } from 'node:crypto';
+import { uuidV7 } from './ids';
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import multer from 'multer';
@@ -259,7 +259,7 @@ export function registerAdsRoutes(app: Express): void {
 			const validUntilRaw = field(body, 'validUntil').trim();
 			const branchIds = parseBranchIds(body);
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 
 			await db.insert(ads).values({
 				id,
@@ -274,7 +274,7 @@ export function registerAdsRoutes(app: Express): void {
 				updatedAt: now
 			});
 			for (const branchId of branchIds) {
-				await db.insert(adBranches).values({ id: randomUUID(), adId: id, branchId });
+				await db.insert(adBranches).values({ id: uuidV7(), adId: id, branchId });
 			}
 
 			const [row] = await db.select().top(1).from(ads).where(eq(ads.id, id));
@@ -357,7 +357,7 @@ export function registerAdsRoutes(app: Express): void {
 
 			await db.delete(adBranches).where(eq(adBranches.adId, id));
 			for (const branchId of branchIds) {
-				await db.insert(adBranches).values({ id: randomUUID(), adId: id, branchId });
+				await db.insert(adBranches).values({ id: uuidV7(), adId: id, branchId });
 			}
 
 			sendJson(res, { success: true, message: 'Ad updated successfully' });

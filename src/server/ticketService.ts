@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, or } from 'drizzle-orm';
+import { uuidV7 } from './ids';
+import { and, asc, desc, eq, gte, inArray, isNull, lt, ne, notInArray, or } from 'drizzle-orm';
 import { db } from './db';
 import {
 	banktickets,
@@ -7,6 +7,7 @@ import {
 	counterAvailabilityEvents,
 	ticketServices
 } from './db/schema';
+import { recordActivity } from './auditLogger';
 import { eatNow } from './timezone';
 import {
 	TICKET_STATUS,
@@ -76,7 +77,7 @@ export async function openInitialWaitSegment(ticket: {
 	subSubItemId?: string | null;
 }) {
 	const now = eatNow();
-	const serviceId = randomUUID();
+	const serviceId = uuidV7();
 	await db.insert(ticketServices).values({
 		id: serviceId,
 		ticketId: ticket.id,
@@ -191,6 +192,11 @@ export async function transitionTicketService(input: TransitionInput) {
 		error.status = 404;
 		throw error;
 	}
+	if (ticket.ticketStatus === TICKET_STATUS.EXPIRED) {
+		const error = new Error('Ticket has expired') as Error & { status?: number };
+		error.status = 409;
+		throw error;
+	}
 
 	const [openService] = await db
 		.select()
@@ -226,7 +232,8 @@ export async function transitionTicketService(input: TransitionInput) {
 	const isTerminal =
 		input.nextTicketStatus === TICKET_STATUS.SERVED ||
 		input.nextTicketStatus === TICKET_STATUS.CANCELLED ||
-		input.nextTicketStatus === TICKET_STATUS.NO_SHOW;
+		input.nextTicketStatus === TICKET_STATUS.NO_SHOW ||
+		input.nextTicketStatus === TICKET_STATUS.EXPIRED;
 
 	let currentServiceId: string | null = null;
 	let nextCounterId: string | null = ticket.counterId;
@@ -252,7 +259,7 @@ export async function transitionTicketService(input: TransitionInput) {
 			.where(eq(ticketServices.ticketId, ticket.id))
 			.orderBy(desc(ticketServices.sequence));
 		const sequence = (latest?.sequence ?? 0) + 1;
-		currentServiceId = randomUUID();
+		currentServiceId = uuidV7();
 		await db.insert(ticketServices).values({
 			id: currentServiceId,
 			ticketId: ticket.id,
@@ -306,8 +313,14 @@ export async function transitionTicketService(input: TransitionInput) {
 		patch.totalDuration = notServedDuration + servingDuration + holdDuration;
 		patch.pendingRedirectAcceptance = false;
 	}
-	if (input.nextTicketStatus === TICKET_STATUS.CANCELLED) {
+	if (
+		input.nextTicketStatus === TICKET_STATUS.CANCELLED ||
+		input.nextTicketStatus === TICKET_STATUS.EXPIRED
+	) {
 		patch.pendingRedirectAcceptance = false;
+	}
+	if (input.nextTicketStatus === TICKET_STATUS.EXPIRED) {
+		patch.totalDuration = notServedDuration + servingDuration + holdDuration;
 	}
 
 	await db.update(banktickets).set(patch).where(eq(banktickets.id, ticket.id));
@@ -357,13 +370,108 @@ export async function recordCounterAvailabilityEvent(
 ) {
 	const now = eatNow();
 	await db.insert(counterAvailabilityEvents).values({
-		id: randomUUID(),
+		id: uuidV7(),
 		counterId,
 		eventType,
 		at,
 		createdAt: now,
 		updatedAt: now
 	});
+}
+
+/** Stored timestamps use Kampala wall-clock digits, so the next UTC midnight is the end of that creation day. */
+function endOfCreationDay(createdAt: Date): Date {
+	return new Date(Date.UTC(createdAt.getUTCFullYear(), createdAt.getUTCMonth(), createdAt.getUTCDate() + 1));
+}
+
+let expirationSweepRunning = false;
+
+export async function expireTicketsPastCreationDay(): Promise<number> {
+	if (expirationSweepRunning) return 0;
+	expirationSweepRunning = true;
+	try {
+		const { today } = todayRange();
+		const stale = await db
+			.select()
+			.from(banktickets)
+			.where(
+				and(
+					lt(banktickets.createdAt, today),
+					notInArray(banktickets.ticketStatus, [
+						TICKET_STATUS.SERVED,
+						TICKET_STATUS.NO_SHOW,
+						TICKET_STATUS.EXPIRED
+					])
+				)
+			);
+
+		const now = eatNow();
+		for (const ticket of stale) {
+			const endedAt = endOfCreationDay(new Date(ticket.createdAt));
+			const [openService] = await db
+				.select()
+				.top(1)
+				.from(ticketServices)
+				.where(and(eq(ticketServices.ticketId, ticket.id), isNull(ticketServices.endedAt)))
+				.orderBy(desc(ticketServices.sequence));
+
+			let notServedDuration = ticket.notServedDuration;
+			let servingDuration = ticket.servingDuration;
+			let holdDuration = ticket.holdDuration;
+			let ticketServiceId: string | null = null;
+
+			if (openService) {
+				const duration = calculateDurationInSeconds(openService.startedAt, endedAt);
+				const field = durationFieldForStatus(openService.ticketStatus);
+				if (field === 'notServedDuration') notServedDuration += duration;
+				if (field === 'servingDuration') servingDuration += duration;
+				if (field === 'holdDuration') holdDuration += duration;
+				ticketServiceId = openService.id;
+				await db
+					.update(ticketServices)
+					.set({
+						endedAt,
+						duration,
+						endReason: SERVICE_END_REASON.EXPIRED,
+						updatedAt: now
+					})
+					.where(eq(ticketServices.id, openService.id));
+			}
+
+			const totalDuration = notServedDuration + servingDuration + holdDuration;
+			await db
+				.update(banktickets)
+				.set({
+					ticketStatus: TICKET_STATUS.EXPIRED,
+					currentServiceId: null,
+					pendingRedirectAcceptance: false,
+					notServedDuration,
+					servingDuration,
+					holdDuration,
+					totalDuration,
+					updatedAt: now
+				})
+				.where(eq(banktickets.id, ticket.id));
+
+			await recordActivity({
+				action: 'serving.ticket.expire',
+				actorType: 'system',
+				attachSession: false,
+				ticketId: ticket.id,
+				documentId: ticket.id,
+				ticketServiceId,
+				branchId: ticket.branchId,
+				counterId: ticket.counterId,
+				description: `Ticket ${ticket.ticketNo} expired at end of creation day`,
+				before: { ticketStatus: ticket.ticketStatus },
+				after: { ticketStatus: TICKET_STATUS.EXPIRED }
+			});
+		}
+
+		return stale.length;
+	} finally {
+		expirationSweepRunning = false;
+	}
 }
 
 export { formatAverageClock, SERVICE_END_REASON, TICKET_STATUS };

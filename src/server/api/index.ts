@@ -1,8 +1,8 @@
 import type { Request, Response, NextFunction, Express } from 'express';
-import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { and, asc, count, desc, eq, gte, inArray, isNotNull, isNull, like, lt, ne, sql } from 'drizzle-orm';
+import { uuidV7 } from '../ids';
 import { db } from '../db';
 import {
 	announcements,
@@ -45,7 +45,7 @@ import { isLdapEnabled } from '../ldap/config';
 import { authenticateLDAP } from '../ldap/ldapService';
 import { openUserSession } from '../userSession';
 import { AUDIT_ACTION } from '../auditActions';
-import { recordActivity, recordAuthFailure } from '../auditLogger';
+import { recordActivity, recordAuthFailure, createAuditLog } from '../auditLogger';
 import { getDashboardStats } from '../dashboard';
 import { createTicket, countPeopleAhead, listTickets, UUID_RE } from '../tickets';
 import {
@@ -554,7 +554,7 @@ function registerTicketRoutes(app: Express): void {
 			});
 			const now = eatNow();
 			await db.insert(ticketAnnouncements).values({
-				id: randomUUID(),
+				id: uuidV7(),
 				ticketId: claimed.id,
 				ticketNo: claimed.ticketNo,
 				branchId: claimed.branchId,
@@ -768,6 +768,12 @@ function registerTicketRoutes(app: Express): void {
 			const body = req.body ?? {};
 			const [ticket] = await db.select().top(1).from(banktickets).where(eq(banktickets.id, p(req, 'id')));
 			if (!ticket) return sendJson(res, { success: false, error: 'Ticket not found' }, 404);
+			if (
+				ticket.ticketStatus === TICKET_STATUS.EXPIRED &&
+				(body.ticketStatus || body.redirectToCounterId || typeof body.callAgain === 'boolean')
+			) {
+				return sendJson(res, { success: false, error: 'Ticket has expired' }, 409);
+			}
 
 			if (typeof body.callAgain === 'boolean' && !body.ticketStatus && !body.redirectToCounterId) {
 				await db.update(banktickets).set({ callAgain: body.callAgain }).where(eq(banktickets.id, ticket.id));
@@ -777,7 +783,7 @@ function registerTicketRoutes(app: Express): void {
 						? await db.select().top(1).from(counters).where(eq(counters.id, ticket.counterId))
 						: [null];
 					await db.insert(ticketAnnouncements).values({
-						id: randomUUID(),
+						id: uuidV7(),
 						ticketId: ticket.id,
 						ticketNo: ticket.ticketNo,
 						branchId: ticket.branchId,
@@ -928,7 +934,7 @@ function registerTicketRoutes(app: Express): void {
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(ticketAnnouncements).values({
 				id,
 				ticketId: body.ticketId,
@@ -1244,7 +1250,7 @@ function registerOrgRoutes(app: Express): void {
 			const password = body.password ? await hashPassword(String(body.password), false) : '';
 			if (!existing) {
 				await db.insert(bankSettings).values({
-					id: randomUUID(),
+					id: uuidV7(),
 					companyType: String(body.companyType ?? ''),
 					companyName: String(body.companyName ?? ''),
 					email: String(body.email ?? ''),
@@ -1339,7 +1345,7 @@ function registerOrgRoutes(app: Express): void {
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(branches).values({
 				id,
 				name: body.name,
@@ -1434,7 +1440,7 @@ function registerOrgRoutes(app: Express): void {
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			const roleId = body.roleId ?? body.role ?? null;
 			const branchId = body.branchId ?? body.branch ?? null;
 			const username = String(body.username ?? '');
@@ -1534,7 +1540,7 @@ function registerOrgRoutes(app: Express): void {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(roles).values({
 				id,
 				name: req.body.name,
@@ -1601,7 +1607,7 @@ function registerOrgRoutes(app: Express): void {
 					? body.subMenuItems
 					: [];
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(queues).values({
 				id,
 				name,
@@ -1611,7 +1617,7 @@ function registerOrgRoutes(app: Express): void {
 			});
 			for (const sub of items) {
 				if (!sub?.name) continue;
-				const subId = randomUUID();
+				const subId = uuidV7();
 				await db.insert(subMenuItems).values({
 					id: subId,
 					queueId: id,
@@ -1623,7 +1629,7 @@ function registerOrgRoutes(app: Express): void {
 				for (const subSub of sub.subSubMenuItems ?? []) {
 					if (!subSub?.name) continue;
 					await db.insert(subSubMenuItems).values({
-						id: randomUUID(),
+						id: uuidV7(),
 						subMenuItemId: subId,
 						name: subSub.name,
 						priority: Boolean(subSub.priority),
@@ -1659,7 +1665,7 @@ function registerOrgRoutes(app: Express): void {
 				await db.delete(subMenuItems).where(eq(subMenuItems.queueId, p(req, 'id')));
 				for (const sub of items) {
 					if (!sub?.name) continue;
-					const subId = sub.id && UUID_RE.test(sub.id) ? sub.id : randomUUID();
+					const subId = sub.id && UUID_RE.test(sub.id) ? sub.id : uuidV7();
 					const now = eatNow();
 					const hasChildren = Array.isArray(sub.subSubMenuItems) && sub.subSubMenuItems.length > 0;
 					await db.insert(subMenuItems).values({
@@ -1673,7 +1679,7 @@ function registerOrgRoutes(app: Express): void {
 					for (const subSub of sub.subSubMenuItems ?? []) {
 						if (!subSub?.name) continue;
 						await db.insert(subSubMenuItems).values({
-							id: randomUUID(),
+							id: uuidV7(),
 							subMenuItemId: subId,
 							name: subSub.name,
 							priority: Boolean(subSub.priority),
@@ -1706,22 +1712,94 @@ function registerOrgRoutes(app: Express): void {
 
 	app.get(
 		'/api/bank/counters',
-		wrap(async (req, res) => {
-			const auth = await requireAnySession();
+		wrap(async (_req, res) => {
+			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
-			const branchId = String(req.query['branchId'] || auth.regularSession?.branchId || '');
-			const { today, tomorrow } = todayRange();
+			const session = auth.session;
+			const admin = isDashboardAdmin(session);
+			if (!admin && !session.branchId) {
+				return sendJson(res, { error: 'Unauthorized' }, 401);
+			}
+
 			const rows = await db
-				.select()
+				.select({
+					id: counters.id,
+					counterNumber: counters.counterNumber,
+					available: counters.available,
+					createdAt: counters.createdAt,
+					userId: counters.userId,
+					queueId: counters.queueId,
+					branchId: counters.branchId
+				})
 				.from(counters)
-				.where(
-					and(
-						gte(counters.createdAt, today),
-						lt(counters.createdAt, tomorrow),
-						...(branchId ? [eq(counters.branchId, branchId)] : [])
-					)
-				);
-			sendJson(res, rows);
+				.where(admin ? undefined : eq(counters.branchId, session.branchId!))
+				.orderBy(desc(counters.createdAt));
+
+			const counterIds = rows.map((r) => r.id);
+			const ticketIdsByCounter = new Map<string, Set<string>>();
+			const addTicket = (counterId: string | null | undefined, ticketId: string) => {
+				if (!counterId) return;
+				const set = ticketIdsByCounter.get(counterId) ?? new Set<string>();
+				set.add(ticketId);
+				ticketIdsByCounter.set(counterId, set);
+			};
+
+			if (counterIds.length > 0) {
+				const [serviceRows, assignedTickets] = await Promise.all([
+					db
+						.select({ counterId: ticketServices.counterId, ticketId: ticketServices.ticketId })
+						.from(ticketServices)
+						.where(inArray(ticketServices.counterId, counterIds)),
+					db
+						.select({ counterId: banktickets.counterId, id: banktickets.id })
+						.from(banktickets)
+						.where(inArray(banktickets.counterId, counterIds))
+				]);
+				for (const row of serviceRows) addTicket(row.counterId, row.ticketId);
+				for (const ticket of assignedTickets) addTicket(ticket.counterId, ticket.id);
+			}
+
+			const result = [];
+			for (const row of rows) {
+				const [user] = row.userId
+					? await db
+							.select({
+								id: users.id,
+								username: users.username,
+								firstName: users.firstName,
+								lastName: users.lastName
+							})
+							.top(1)
+							.from(users)
+							.where(eq(users.id, row.userId))
+					: [null];
+				const [queue] = row.queueId
+					? await db
+							.select({ id: queues.id, name: queues.name })
+							.top(1)
+							.from(queues)
+							.where(eq(queues.id, row.queueId))
+					: [null];
+				const [branch] = row.branchId
+					? await db
+							.select({ id: branches.id, name: branches.name })
+							.top(1)
+							.from(branches)
+							.where(eq(branches.id, row.branchId))
+					: [null];
+				result.push({
+					id: row.id,
+					counterNumber: row.counterNumber,
+					available: row.available,
+					createdAt: row.createdAt,
+					ticketCount: ticketIdsByCounter.get(row.id)?.size ?? 0,
+					user: user ?? null,
+					queue: queue ?? null,
+					branch: branch ?? null
+				});
+			}
+
+			sendJson(res, { counters: result });
 		})
 	);
 
@@ -1790,7 +1868,7 @@ function registerOrgRoutes(app: Express): void {
 				return sendJson(res, { error: `Counter ${counterNumber} is already taken today` }, 400);
 			}
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(counters).values({
 				id,
 				userId: auth.session.userId!,
@@ -1953,6 +2031,115 @@ function registerOrgRoutes(app: Express): void {
 		})
 	);
 
+	app.put(
+		'/api/bank/counter/:id',
+		wrap(async (req, res) => {
+			const auth = await requireAuth();
+			if (auth.error) return sendAuthError(res, auth.error);
+			const session = auth.session;
+			const admin = isDashboardAdmin(session);
+			if (!admin && !session.branchId) {
+				return sendJson(res, { error: 'Unauthorized' }, 401);
+			}
+
+			const id = p(req, 'id');
+			const [counter] = await db.select().top(1).from(counters).where(eq(counters.id, id));
+			if (!counter) return sendJson(res, { error: 'Counter not found' }, 404);
+			if (!admin && counter.branchId !== session.branchId) {
+				return sendJson(res, { error: 'Unauthorized' }, 401);
+			}
+
+			const body = req.body ?? {};
+			const nextCounterNumber =
+				body.counterNumber !== undefined && body.counterNumber !== null
+					? Number(body.counterNumber)
+					: undefined;
+
+			if (
+				nextCounterNumber !== undefined &&
+				nextCounterNumber !== counter.counterNumber
+			) {
+				if (!Number.isFinite(nextCounterNumber) || nextCounterNumber < 1) {
+					return sendJson(res, { error: 'Enter a valid counter number' }, 400);
+				}
+				const { today, tomorrow } = todayRange();
+				const [existing] = await db
+					.select({ id: counters.id })
+					.top(1)
+					.from(counters)
+					.where(
+						and(
+							eq(counters.branchId, counter.branchId),
+							eq(counters.counterNumber, nextCounterNumber),
+							gte(counters.createdAt, today),
+							lt(counters.createdAt, tomorrow),
+							ne(counters.id, id)
+						)
+					);
+				if (existing) {
+					return sendJson(res, { error: 'Counter number is already in use' }, 400);
+				}
+			}
+
+			const patch: Record<string, unknown> = { updatedAt: eatNow() };
+			if (typeof body.available === 'boolean') patch.available = body.available;
+			if (body.queueId) patch.queueId = String(body.queueId);
+			if (nextCounterNumber !== undefined) patch.counterNumber = nextCounterNumber;
+			if (body.subItemId !== undefined) patch.subItemId = body.subItemId || null;
+			if (body.subSubItemId !== undefined) patch.subSubItemId = body.subSubItemId || null;
+
+			await db.update(counters).set(patch).where(eq(counters.id, id));
+			const [updated] = await db.select().top(1).from(counters).where(eq(counters.id, id));
+
+			if (typeof body.available === 'boolean' && body.available !== counter.available) {
+				await recordCounterAvailabilityEvent(
+					id,
+					body.available
+						? COUNTER_AVAILABILITY_EVENT.AVAILABLE
+						: COUNTER_AVAILABILITY_EVENT.PAUSED
+				);
+			}
+
+			const availabilityToggled =
+				typeof body.available === 'boolean' && body.available !== counter.available;
+
+			if (availabilityToggled && session.actorType === 'serving') {
+				await recordActivity({
+					action: body.available
+						? AUDIT_ACTION.SERVING_AVAILABLE
+						: AUDIT_ACTION.SERVING_PAUSED,
+					collectionName: 'Counter',
+					operation: body.available ? 'available' : 'paused',
+					documentId: id,
+					userId: session.userId,
+					performedBy: session.userId,
+					counterId: id,
+					description: body.available
+						? `Went available at counter ${updated?.counterNumber ?? id}`
+						: `Paused counter ${updated?.counterNumber ?? id}`,
+					before: counter,
+					after: updated,
+					metadata: { branchId: session.branchId }
+				});
+			} else {
+				await createAuditLog({
+					collectionName: 'Counter',
+					operation: 'update',
+					documentId: id,
+					userId: session.userId,
+					performedBy: session.userId,
+					counterId: id,
+					description: `Updated counter ${updated?.counterNumber ?? id}`,
+					before: counter,
+					after: updated,
+					metadata: { branchId: session.branchId }
+				});
+			}
+
+			sendJson(res, { success: true, message: 'Counter updated successfully' });
+		})
+	);
+
 	app.get(
 		'/api/bank/exchange-rates',
 		wrap(async (_req, res) => {
@@ -1986,7 +2173,7 @@ function registerOrgRoutes(app: Express): void {
 				}
 			}
 			const now = eatNow();
-			const id = randomUUID();
+			const id = uuidV7();
 			const maxOrder = await db
 				.select({ displayOrder: exchangeRates.displayOrder })
 				.from(exchangeRates)
@@ -2088,7 +2275,7 @@ function registerOrgRoutes(app: Express): void {
 		wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(announcements).values({
 				id,
 				text: req.body.text,
@@ -2133,7 +2320,7 @@ function registerOrgRoutes(app: Express): void {
 		wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(announcementTypes).values({
 				id,
 				name: req.body.name,
@@ -2178,7 +2365,7 @@ function registerOrgRoutes(app: Express): void {
 		wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
-			const id = randomUUID();
+			const id = uuidV7();
 			await db.insert(socialMedia).values({
 				id,
 				platform: req.body.platform,
@@ -2585,6 +2772,22 @@ function registerOrgRoutes(app: Express): void {
 			sendJson(res, { success: true, message: 'Session terminated' });
 		})
 	);
+}
+
+function isDashboardAdmin(session: {
+	role?: string | null;
+	permissions?: Record<string, boolean> | null;
+}): boolean {
+	const roleIsAdmin =
+		session.role === 'admin' ||
+		Boolean(session.role && session.role.toLowerCase().includes('admin'));
+	const hasAdminPermissions = Boolean(
+		session.permissions &&
+			(session.permissions['Branches'] === true ||
+				session.permissions['Users'] === true ||
+				session.permissions['Settings'] === true)
+	);
+	return Boolean(roleIsAdmin || hasAdminPermissions);
 }
 
 function registerRatingRoutes(app: Express): void {
