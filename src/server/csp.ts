@@ -61,11 +61,23 @@ function promoteDeferredStylesheets(html: string): string {
 	});
 }
 
+/**
+ * Angular reads the CSP nonce from a `[ngCspNonce]` attribute on a descendant of
+ * `<body>` (not from a `<meta>` tag) and copies it onto component `<style>` tags
+ * it creates later. Production `style-src` only allows `'self'` plus that nonce,
+ * so without this attribute those styles are blocked and layout that lives only
+ * in component CSS (the hall marquee) falls back to unstyled block flow.
+ */
+function stampNgCspNonce(html: string, nonce: string): string {
+	if (/\bngCspNonce\s*=/.test(html)) return html;
+	return html.replace(/<app-root\b([^>]*)>/i, `<app-root$1 ngCspNonce="${nonce}">`);
+}
+
 export function applyCspNonces(html: string, nonce: string): string {
 	const withMeta = html.includes('property="csp-nonce"')
 		? html
 		: html.replace(/<head([^>]*)>/i, `<head$1>\n\t\t<meta property="csp-nonce" nonce="${nonce}" />`);
-	return promoteDeferredStylesheets(withMeta)
+	return promoteDeferredStylesheets(stampNgCspNonce(withMeta, nonce))
 		.replace(/<script(?![^>]*\bnonce=)/gi, `<script nonce="${nonce}"`)
 		.replace(/<style(?![^>]*\bnonce=)/gi, `<style nonce="${nonce}"`);
 }
