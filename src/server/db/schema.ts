@@ -81,6 +81,20 @@ export const queues = mssqlTable('queues', {
 	updatedAt: ts().notNull()
 });
 
+export const queueBranches = mssqlTable(
+	'queue_branches',
+	{
+		id: id(),
+		queueId: str()
+			.notNull()
+			.references(() => queues.id),
+		branchId: str()
+			.notNull()
+			.references(() => branches.id)
+	},
+	(t) => [uniqueIndex('queue_branches_queueId_branchId_key').on(t.queueId, t.branchId)]
+);
+
 export const subMenuItems = mssqlTable('sub_menu_items', {
 	id: id(),
 	queueId: str().notNull(),

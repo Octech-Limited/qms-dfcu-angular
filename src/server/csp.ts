@@ -12,7 +12,7 @@ function sharedDirectives(): string[] {
 		"script-src-attr 'none'",
 		"style-src-attr 'unsafe-inline'",
 		"font-src 'self' data:",
-		"img-src 'self' data: https: blob:",
+		"img-src 'self' data:",
 		"media-src 'self' https://www.youtube.com",
 		"frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
 		"connect-src 'self' https://vms.nesscom.net:8443",

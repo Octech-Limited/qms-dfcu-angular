@@ -329,7 +329,7 @@ export class RateServicePage implements OnInit {
     this.searching.set(true);
     this.error.set(null);
     try {
-      const result = await this.api.get<{
+      const result = await this.api.post<{
         success: boolean;
         ticket?: Ticket;
         error?: string;

@@ -56,7 +56,13 @@ import {
 	serializeBankticket,
 	transitionTicketService
 } from '../ticketService';
-import { listQueuesNested } from '../queues';
+import {
+	branchesExist,
+	deleteQueueBranches,
+	listQueuesNested,
+	parseQueueBranchIds,
+	replaceQueueBranches
+} from '../queues';
 import {
 	SERVICE_END_REASON,
 	TICKET_STATUS,
@@ -67,7 +73,7 @@ import {
 import { eatCalendarDate, eatDayRangeForDate, eatEndOfDayMs, eatNow } from '../timezone';
 import { validateUgandanPhoneNumber } from '../phone';
 import { getAudioLanguageDirNames, isValidTicketLanguageString, MAX_TICKET_LANGUAGE_LENGTH } from '../audioLanguages';
-import { smsService } from '../sms';
+import { isCustomFeedbackLink, ratingSmsUrl, smsService } from '../sms';
 import { COUNTER_AVAILABILITY_EVENT } from '../ticketStatus';
 import { registerAdsRoutes } from '../adsRoutes';
 
@@ -574,11 +580,11 @@ function registerTicketRoutes(app: Express): void {
 		})
 	);
 
-	app.get(
+	app.post(
 		'/api/bank/ticket/search',
 		wrap(async (req, res) => {
-			const ticketNo = String(req.query['ticketNo'] || '');
-			const branchId = String(req.query['branchId'] || '');
+			const ticketNo = String(req.body?.ticketNo || '');
+			const branchId = String(req.body?.branchId || '');
 			if (!ticketNo) return sendJson(res, { error: 'ticketNo is required' }, 400);
 			const clauses = [eq(banktickets.ticketNo, ticketNo)];
 			if (branchId) clauses.push(eq(banktickets.branchId, branchId));
@@ -840,12 +846,11 @@ function registerTicketRoutes(app: Express): void {
 					}
 				});
 				let ratingSmsDeferred = false;
-				const feedbackBaseUrl =
-					process.env['FEEDBACK_URL'] || process.env['APP_URL'] || process.env['ORIGIN'];
+				const feedbackUrl = ratingSmsUrl(updated.id);
 				if (
 					body.ticketStatus === TICKET_STATUS.SERVED &&
 					updated.phoneNumber &&
-					feedbackBaseUrl
+					feedbackUrl
 				) {
 					ratingSmsDeferred = true;
 					const ticketIdForSms = updated.id;
@@ -872,8 +877,12 @@ function registerTicketRoutes(app: Express): void {
 							logger.error('Error sending rating request SMS:', smsError);
 						}
 					})();
-				} else if (body.ticketStatus === TICKET_STATUS.SERVED && updated.phoneNumber && !feedbackBaseUrl) {
-					logger.warn('FEEDBACK_URL/APP_URL not configured, skipping SMS rating request');
+				} else if (body.ticketStatus === TICKET_STATUS.SERVED && updated.phoneNumber && !feedbackUrl) {
+					logger.warn(
+						isCustomFeedbackLink()
+							? 'FEEDBACK_URL not configured, skipping SMS rating request'
+							: 'FEEDBACK_URL/APP_URL not configured, skipping SMS rating request'
+					);
 				}
 				return sendJson(res, { success: true, data: serializeBankticket(updated), ratingSmsDeferred });
 			}
@@ -1587,7 +1596,8 @@ function registerOrgRoutes(app: Express): void {
 		wrap(async (_req, res) => {
 			const auth = await requireAnySession();
 			if (auth.error) return sendAuthError(res, auth.error);
-			sendJson(res, await listQueuesNested());
+			const branchId = queueListBranchId(auth);
+			sendJson(res, await listQueuesNested(branchId));
 		})
 	);
 	app.post(
@@ -1601,6 +1611,8 @@ function registerOrgRoutes(app: Express): void {
 			if (!name || typeof name !== 'string') {
 				return sendJson(res, { success: false, error: "Invalid or missing 'menuItem' or 'subMenuItems'" }, 400);
 			}
+			const branchError = await requireQueueBranches(body.branchIds);
+			if (branchError) return sendJson(res, { success: false, error: branchError }, 400);
 			const items = Array.isArray(menuItem?.subMenuItems)
 				? menuItem.subMenuItems
 				: Array.isArray(body.subMenuItems)
@@ -1638,6 +1650,8 @@ function registerOrgRoutes(app: Express): void {
 					});
 				}
 			}
+			const createdBranches = parseQueueBranchIds(body.branchIds);
+			if (createdBranches.ok) await replaceQueueBranches(id, createdBranches.ids);
 			const nested = await listQueuesNested();
 			sendJson(res, nested.find((q) => q.id === id) ?? { id }, 201);
 		})
@@ -1648,6 +1662,10 @@ function registerOrgRoutes(app: Express): void {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
+			if (body.branchIds !== undefined) {
+				const branchError = await requireQueueBranches(body.branchIds);
+				if (branchError) return sendJson(res, { success: false, error: branchError }, 400);
+			}
 			const name = body.name || body.menuItem?.name;
 			const patch: Record<string, unknown> = { updatedAt: eatNow() };
 			if (name) patch['name'] = name;
@@ -1689,6 +1707,10 @@ function registerOrgRoutes(app: Express): void {
 					}
 				}
 			}
+			if (body.branchIds !== undefined) {
+				const updatedBranches = parseQueueBranchIds(body.branchIds);
+				if (updatedBranches.ok) await replaceQueueBranches(p(req, 'id'), updatedBranches.ids);
+			}
 			sendJson(res, { success: true });
 		})
 	);
@@ -1697,6 +1719,7 @@ function registerOrgRoutes(app: Express): void {
 		wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
+			await deleteQueueBranches(p(req, 'id'));
 			const existingSubs = await db
 				.select({ id: subMenuItems.id })
 				.from(subMenuItems)
@@ -2774,6 +2797,27 @@ function registerOrgRoutes(app: Express): void {
 	);
 }
 
+function queueListBranchId(auth: {
+	sessionType: 'regular' | 'display' | 'kiosk';
+	regularSession?: { actorType?: string; branchId?: string };
+	displaySession?: { branchId?: string };
+	kioskSession?: { branchId?: string };
+}): string | undefined {
+	if (auth.sessionType === 'kiosk') return auth.kioskSession?.branchId || undefined;
+	if (auth.sessionType === 'display') return auth.displaySession?.branchId || undefined;
+	if (auth.sessionType === 'regular' && auth.regularSession?.actorType === 'serving') {
+		return auth.regularSession.branchId || undefined;
+	}
+	return undefined;
+}
+
+async function requireQueueBranches(raw: unknown): Promise<string | null> {
+	const parsed = parseQueueBranchIds(raw);
+	if (!parsed.ok) return parsed.error;
+	if (!(await branchesExist(parsed.ids))) return 'One or more branches were not found';
+	return null;
+}
+
 function isDashboardAdmin(session: {
 	role?: string | null;
 	permissions?: Record<string, boolean> | null;
@@ -2804,13 +2848,13 @@ function registerRatingRoutes(app: Express): void {
 			sendJson(res, rows);
 		})
 	);
-	app.get(
+	app.post(
 		'/api/bank/ratings/ticket/search',
 		wrap(async (req, res) => {
 			const err = validateRatingRequest(req);
 			if (err) return sendJson(res, { error: err }, 403);
-			const ticketNo = String(req.query['ticketNo'] || '');
-			const branchId = String(req.query['branchId'] || '');
+			const ticketNo = String(req.body?.ticketNo || '');
+			const branchId = String(req.body?.branchId || '');
 			if (!ticketNo) return sendJson(res, { success: false, error: 'Ticket number is required' }, 400);
 			const { today, tomorrow } = todayRange();
 			const clauses = [

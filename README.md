@@ -79,7 +79,7 @@ Typical flow: **kiosk issues ticket → hall announces when claimed → teller s
 | UI | Tailwind 4, `@spartan-ng/brain`, `lucide-angular`, `ngx-sonner`, Chart.js |
 | Other | `dotenv`, `multer` (ads/uploads), `qrcode`, `luxon` |
 
-SMS uses the **VMS** HTTP API (`src/server/sms.ts`) — no third-party SMS SDK. D-Mark is not used.
+SMS (`src/server/sms.ts`) is selected by `SMS_SETUP`: `development` uses the VMS HTTP API, and `production` uses the DFCU SMSAPIX gateway. No third-party SMS SDK.
 
 ### Scripts
 
@@ -135,7 +135,7 @@ Defined in `src/app/app.routes.ts`.
 2. **Daily counters** — Counter numbers are unique **per branch per EAT day**. Agents must open a new counter each morning; yesterday’s rows do not carry over.
 3. **Ticket numbers** — Generated per branch for the day (e.g. `A01`… then letter roll).
 4. **Idle security** — Dashboard and serving sessions are logged out after **5 minutes** of inactivity. Kiosk and hall sessions are **not** idle-killed (month-long cookies).
-5. **SMS (VMS only)** — E-ticket SMS on create; rating SMS when a ticket is marked Served (needs `FEEDBACK_URL` / `APP_URL` / `ORIGIN`).
+5. **SMS** — E-ticket SMS on create; rating SMS when a ticket is marked Served. `CUSTOM_FEEDBACK_LINK=false` appends `/rating/:ticketId` to `FEEDBACK_URL` (or `APP_URL` / `ORIGIN`). `CUSTOM_FEEDBACK_LINK=true` sends `FEEDBACK_URL` unchanged.
 6. **Hall audio** — Opus/clip sequences under `public/audio/{Language}/`; announcements queued in `ticket_announcements`.
 7. **Auth modes** — `AUTH_METHOD=database|ldap|hybrid` with optional LDAP env vars.
 8. **CSP & Host allowlist** — Security headers in `src/server/csp.ts`; `NG_ALLOWED_HOSTS` for LAN/SSR Host checks.
@@ -196,16 +196,28 @@ DATABASE_URL="sqlserver://HOST:1433;database=DB;user=USER;password=PASS;encrypt=
 ORIGIN="http://localhost:4200"
 APP_URL="http://localhost:4200"
 FEEDBACK_URL="http://localhost:4200"
+# false: append /rating/:ticketId. true: send FEEDBACK_URL unchanged.
+CUSTOM_FEEDBACK_LINK=false
 ALLOWED_ORIGINS=*
 
 SESSION_PASSWORD="complex_password_at_least_32_characters_long"
 COOKIE_SECURE="false"
 RATING_API_SECRET="change-me"
 
-# VMS SMS
+# SMS: development = VMS, production = DFCU SMSAPIX
+SMS_SETUP=development
 SMS_API_KEY="vms_..."
 SMS_SENDER_ID="7787"
 SMS_ENDPOINT="https://vmsapi.nesscom.net:9443/send"
+# Required only when SMS_SETUP=production. BASE_URL is the origin;
+# the app appends dfcusms.php/dfcuwrapper/SMSAPIX.
+DFCU_SMS_BASE_URL=
+DFCU_SMS_USERNAME=
+DFCU_SMS_PASSWORD=
+DFCU_SMS_API_ID=
+DFCU_SMS_FROM=
+# Optional. Defaults to TRANSACTIONAL when empty.
+DFCU_SMS_MESSAGE_TYPE=
 VERIFY_TLS=true
 
 AUTH_METHOD="database"

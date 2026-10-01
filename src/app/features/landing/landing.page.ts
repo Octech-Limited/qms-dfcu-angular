@@ -49,15 +49,16 @@ import { UiButton } from '../../shared/ui/ui';
 
         <nav class="mt-12 flex flex-wrap justify-center gap-4" aria-label="QMS portals">
           @for (action of actions; track action.route) {
-            <button
+            <a
               uiBtn
               size="lg"
+              [href]="action.href"
               [disabled]="isLoading()"
-              (click)="navigate(action.route)"
+              (click)="navigate($event, action.route)"
               extraClass="h-auto rounded-full bg-primary px-8 py-6 text-lg text-primary-foreground transition-all duration-300 hover:scale-105"
             >
               {{ isLoading() && action.route === loadingRoute() ? 'Loading...' : action.label }}
-            </button>
+            </a>
           }
         </nav>
       </div>
@@ -91,11 +92,11 @@ export class LandingPage implements OnInit {
   ];
 
   readonly actions = [
-    { route: 'dashboard', label: 'Dashboard' },
-    { route: '/displayLogin', label: 'Hall Display' },
-    { route: '/tellerLogin', label: 'Agent Portal' },
-    { route: '/kioskLogin', label: 'Kiosk Display' },
-    { route: '/feedback/login', label: 'Feedback Portal' },
+    { route: 'dashboard', href: '/login', label: 'Dashboard' },
+    { route: '/displayLogin', href: '/displayLogin', label: 'Hall Display' },
+    { route: '/tellerLogin', href: '/tellerLogin', label: 'Agent Portal' },
+    { route: '/kioskLogin', href: '/kioskLogin', label: 'Kiosk Display' },
+    { route: '/feedback/login', href: '/feedback/login', label: 'Feedback Portal' },
   ];
 
   async ngOnInit() {
@@ -113,7 +114,9 @@ export class LandingPage implements OnInit {
     }
   }
 
-  async navigate(route: string) {
+  async navigate(event: Event, route: string) {
+    event.preventDefault();
+    if (this.isLoading()) return;
     this.loadingRoute.set(route);
     this.isLoading.set(true);
     try {

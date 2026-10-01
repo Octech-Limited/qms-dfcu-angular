@@ -27,9 +27,11 @@ type Sub = {
   priority: boolean;
   subSubMenuItems: SubSub[];
 };
+type Branch = { id: string; name: string };
 type Queue = {
   id: string;
   status?: number;
+  branchIds?: string[];
   menuItem: { name: string; subMenuItems: Sub[] };
 };
 
@@ -81,6 +83,7 @@ type Queue = {
                   <ui-card-title class="text-lg font-semibold">{{
                     queue.menuItem.name
                   }}</ui-card-title>
+                  <p class="mt-1 text-xs text-muted-foreground">{{ branchLabel(queue) }}</p>
                   <div class="mt-2 flex items-center gap-2">
                     <button
                       type="button"
@@ -205,6 +208,24 @@ type Queue = {
                     required
                   />
                 </label>
+                <div class="grid gap-2 text-sm font-medium">
+                  Select Branches
+                  <div class="max-h-32 space-y-2 overflow-y-auto rounded-md border p-2 font-normal">
+                    @for (branch of branches(); track branch.id) {
+                      <label class="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          [checked]="selectedBranches().includes(branch.id)"
+                          (change)="toggleBranch(branch.id)"
+                        />
+                        {{ branch.name }}
+                      </label>
+                    }
+                  </div>
+                  @if (!selectedBranches().length) {
+                    <p class="text-xs text-destructive">Select at least one branch</p>
+                  }
+                </div>
                 <div class="space-y-4">
                   <div class="text-sm font-medium">Sub Items</div>
                   @for (sub of formSubs; track $index; let i = $index) {
@@ -283,7 +304,7 @@ type Queue = {
                 </div>
               </div>
             </div>
-            <button uiBtn class="mt-4 w-full">
+            <button uiBtn class="mt-4 w-full" [disabled]="!selectedBranches().length">
               {{ editing() ? 'Update' : 'Create' }} Queue Menu
             </button>
           </form>
@@ -320,6 +341,8 @@ export class QueuesPage implements OnInit {
 
   readonly icons = { Plus, Search, Pencil, Trash2, X };
   readonly queues = signal<Queue[]>([]);
+  readonly branches = signal<Branch[]>([]);
+  readonly selectedBranches = signal<string[]>([]);
   readonly loading = signal(false);
   readonly dialogOpen = signal(false);
   readonly editing = signal<Queue | null>(null);
@@ -337,6 +360,7 @@ export class QueuesPage implements OnInit {
     return this.queues().filter(
       (queue) =>
         queue.menuItem.name.toLowerCase().includes(q) ||
+        this.branchLabel(queue).toLowerCase().includes(q) ||
         queue.menuItem.subMenuItems.some((sub) => sub.name.toLowerCase().includes(q)),
     );
   });
@@ -351,7 +375,30 @@ export class QueuesPage implements OnInit {
   });
 
   async ngOnInit() {
-    await this.reload();
+    await Promise.all([this.reload(), this.loadBranches()]);
+  }
+
+  branchLabel(queue: Queue) {
+    const ids = queue.branchIds ?? [];
+    if (!ids.length) return 'All branches';
+    const names = this.branches();
+    return ids.map((id) => names.find((branch) => branch.id === id)?.name ?? id).join(', ');
+  }
+
+  toggleBranch(id: string) {
+    const current = this.selectedBranches();
+    this.selectedBranches.set(
+      current.includes(id) ? current.filter((branchId) => branchId !== id) : [...current, id],
+    );
+  }
+
+  async loadBranches() {
+    try {
+      const data = await this.api.get<Branch[]>('/api/bank/branches');
+      this.branches.set(Array.isArray(data) ? data : []);
+    } catch {
+      this.toast.error('Failed to fetch branches');
+    }
   }
 
   async reload() {
@@ -370,11 +417,13 @@ export class QueuesPage implements OnInit {
     this.editing.set(null);
     this.formName = '';
     this.formSubs = [];
+    this.selectedBranches.set([]);
     this.dialogOpen.set(true);
   }
 
   openEdit(queue: Queue) {
     this.editing.set(queue);
+    this.selectedBranches.set([...(queue.branchIds ?? [])]);
     this.formName = queue.menuItem.name;
     this.formSubs = (queue.menuItem.subMenuItems || []).map((sub) => ({
       id: sub.id,
@@ -427,6 +476,7 @@ export class QueuesPage implements OnInit {
 
   payload() {
     return {
+      branchIds: this.selectedBranches(),
       menuItem: {
         name: this.formName.trim(),
         subMenuItems: this.formSubs
@@ -450,6 +500,10 @@ export class QueuesPage implements OnInit {
   async save() {
     if (!this.formName.trim()) {
       this.toast.error('Menu item name is required');
+      return;
+    }
+    if (!this.selectedBranches().length) {
+      this.toast.error('Select at least one branch');
       return;
     }
     try {

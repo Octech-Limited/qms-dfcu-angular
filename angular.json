@@ -41,7 +41,9 @@
               "mssql",
               "bcryptjs",
               "ldapjs",
-              "iron-session"
+              "iron-session",
+              "pino",
+              "sonic-boom"
             ]
           },
           "configurations": {
