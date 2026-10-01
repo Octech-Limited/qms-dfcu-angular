@@ -137,6 +137,7 @@ export async function loginStaff(input: {
 
 			const created = await createSession({
 				userId: 'admin',
+				username: emailForDbLookup,
 				role: 'admin',
 				actorType: 'admin',
 				permissions: ADMIN_PERMISSIONS,
@@ -314,6 +315,7 @@ export async function loginStaff(input: {
 
 		const sessionData: Parameters<typeof createSession>[0] = {
 			userId: user.id,
+			username: user.username,
 			role: role.name || '',
 			actorType: 'dashboard',
 			permissions,

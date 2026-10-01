@@ -85,8 +85,13 @@ type SidebarSettings = {
           }
         </nav>
         <div class="border-t border-sidebar-border p-3">
+          @if (session.session().username) {
+            <p class="truncate px-3 pb-2 text-sm font-medium text-white">
+              {{ session.session().username }}
+            </p>
+          }
           <button
-            class="flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-white/85 hover:bg-sidebar-accent hover:text-white"
+            class="flex w-full items-center gap-3 rounded-md bg-red-600 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-red-700"
             (click)="logout()"
           >
             <lucide-angular [img]="icons.LogOut" class="size-4"></lucide-angular>

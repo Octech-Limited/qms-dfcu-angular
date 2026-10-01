@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { getIronSession, type IronSession, type SessionOptions } from 'iron-session';
 import { eq } from 'drizzle-orm';
 import { db } from './db';
-import { users } from './db/schema';
+import { bankSettings, users } from './db/schema';
 import { logger } from './logger';
 import { closeUserSession } from './userSession';
 import { eatEndOfDayMs, eatNow } from './timezone';
@@ -34,6 +34,7 @@ export function toPublicSession(session: Partial<SessionFields>): PublicSession 
 	return {
 		isLoggedIn,
 		userId: isLoggedIn ? session.userId : undefined,
+		username: isLoggedIn ? session.username : undefined,
 		role: isLoggedIn ? session.role : undefined,
 		actorType: isLoggedIn ? session.actorType : undefined,
 		branchId: isLoggedIn ? session.branchId : undefined,
@@ -60,7 +61,7 @@ export async function getSession(): Promise<SessionData> {
 	if (session.userId && session.userId !== 'admin' && session.sessionToken) {
 		try {
 			const [user] = await db
-				.select({ activeSessionToken: users.activeSessionToken })
+				.select({ activeSessionToken: users.activeSessionToken, username: users.username })
 				.top(1)
 				.from(users)
 				.where(eq(users.id, session.userId));
@@ -70,9 +71,23 @@ export async function getSession(): Promise<SessionData> {
 				session.isLoggedIn = false;
 				session.userId = undefined;
 				session.sessionToken = undefined;
+			} else if (!session.username && user.username) {
+				session.username = user.username;
+				await session.save();
 			}
 		} catch (error) {
 			logger.error('Error validating session token:', error);
+		}
+	}
+	if (session.isLoggedIn && session.userId === 'admin' && !session.username) {
+		try {
+			const [settings] = await db.select({ email: bankSettings.email }).top(1).from(bankSettings);
+			if (settings?.email) {
+				session.username = settings.email;
+				await session.save();
+			}
+		} catch (error) {
+			logger.error('Error loading admin username:', error);
 		}
 	}
 	return session;
@@ -83,6 +98,7 @@ export async function createSession(sessionData: Partial<SessionFields>): Promis
 	const sessionToken = randomBytes(32).toString('hex');
 	session.sessionToken = sessionToken;
 	if (sessionData.userId !== undefined) session.userId = sessionData.userId;
+	if (sessionData.username !== undefined) session.username = sessionData.username;
 	if (sessionData.branchId !== undefined) session.branchId = sessionData.branchId;
 	if (sessionData.counterId !== undefined) session.counterId = sessionData.counterId;
 	if (sessionData.role !== undefined) session.role = sessionData.role;

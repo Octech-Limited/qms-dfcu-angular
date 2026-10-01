@@ -4,6 +4,7 @@ import { ApiService } from './api.service';
 export type PublicSession = {
 	isLoggedIn: boolean;
 	userId?: string;
+	username?: string;
 	role?: string;
 	actorType?: string;
 	branchId?: string;
