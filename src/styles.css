@@ -255,6 +255,44 @@
   animation: queue-spinner 1.5s linear infinite;
 }
 
+.queue-spinner-n8 .queue-spinner-dot:nth-child(1) { top: 10%; left: 50%; animation-delay: 0ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(2) { top: 21.72%; left: 78.28%; animation-delay: 187.5ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(3) { top: 50%; left: 90%; animation-delay: 375ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(4) { top: 78.28%; left: 78.28%; animation-delay: 562.5ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(5) { top: 90%; left: 50%; animation-delay: 750ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(6) { top: 78.28%; left: 21.72%; animation-delay: 937.5ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(7) { top: 50%; left: 10%; animation-delay: 1125ms; }
+.queue-spinner-n8 .queue-spinner-dot:nth-child(8) { top: 21.72%; left: 21.72%; animation-delay: 1312.5ms; }
+
+.queue-spinner-n12 .queue-spinner-dot:nth-child(1) { top: 10%; left: 50%; animation-delay: 0ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(2) { top: 15.36%; left: 70%; animation-delay: 125ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(3) { top: 30%; left: 84.64%; animation-delay: 250ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(4) { top: 50%; left: 90%; animation-delay: 375ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(5) { top: 70%; left: 84.64%; animation-delay: 500ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(6) { top: 84.64%; left: 70%; animation-delay: 625ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(7) { top: 90%; left: 50%; animation-delay: 750ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(8) { top: 84.64%; left: 30%; animation-delay: 875ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(9) { top: 70%; left: 15.36%; animation-delay: 1000ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(10) { top: 50%; left: 10%; animation-delay: 1125ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(11) { top: 30%; left: 15.36%; animation-delay: 1250ms; }
+.queue-spinner-n12 .queue-spinner-dot:nth-child(12) { top: 15.36%; left: 30%; animation-delay: 1375ms; }
+
+[data-sonner-toaster] {
+  --width: 356px;
+  --offset: 32px;
+  --gap: 14px;
+  --front-toast-height: auto;
+}
+
+[data-sonner-toast] {
+  --index: 0;
+  --toasts-before: 0;
+  --z-index: 1;
+  --offset: 0px;
+  --initial-height: auto;
+  --swipe-amount: 0px;
+}
+
 @keyframes marquee {
   from {
     transform: translateX(100vw);

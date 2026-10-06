@@ -138,6 +138,9 @@ import type {
               <p class="text-muted-foreground">Waiting for next ticket…</p>
             } @else {
               <p class="text-muted-foreground">No active ticket</p>
+              @if (activeCounter && !activeCounter.available && activeCounter.unavailableReason) {
+                <p class="text-sm font-medium">Unavailable: {{ activeCounter.unavailableReason }}</p>
+              }
             }
             <div class="flex flex-wrap justify-center gap-2">
               <button uiBtn [disabled]="!!actionPending" (click)="openActions.emit()">

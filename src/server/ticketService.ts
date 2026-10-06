@@ -366,6 +366,7 @@ export async function getCounterDurationAverages(counterId: string) {
 export async function recordCounterAvailabilityEvent(
 	counterId: string,
 	eventType: CounterAvailabilityEventType,
+	reason?: string | null,
 	at = eatNow()
 ) {
 	const now = eatNow();
@@ -373,6 +374,7 @@ export async function recordCounterAvailabilityEvent(
 		id: uuidV7(),
 		counterId,
 		eventType,
+		reason: reason ?? null,
 		at,
 		createdAt: now,
 		updatedAt: now

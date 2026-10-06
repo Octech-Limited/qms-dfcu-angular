@@ -135,14 +135,8 @@ export class UiCardFooter {
   standalone: true,
   template: `
     <div [class]="containerClass" role="status" aria-label="Loading">
-      @for (dot of dots; track $index) {
-        <span
-          class="queue-spinner-dot absolute rounded-full bg-primary"
-          [class]="dotClass"
-          [style.top.%]="dot.top"
-          [style.left.%]="dot.left"
-          [style.animation-delay.ms]="$index * (1500 / dotCount)"
-        ></span>
+      @for (dot of dots; track dot) {
+        <span class="queue-spinner-dot absolute rounded-full bg-primary" [class]="dotClass"></span>
       }
       <span class="sr-only">Loading...</span>
     </div>
@@ -153,23 +147,19 @@ export class UiQueueSpinner {
   @Input() dotCount = 8;
 
   get dots() {
-    return Array.from({ length: this.dotCount }, (_, index) => {
-      const angle = (index * 2 * Math.PI) / this.dotCount;
-      return {
-        top: Number((50 - 40 * Math.cos(angle)).toFixed(2)),
-        left: Number((50 + 40 * Math.sin(angle)).toFixed(2)),
-      };
-    });
+    return Array.from({ length: this.dotCount }, (_, index) => index);
   }
 
   get containerClass() {
     return cn(
       'relative',
+      `queue-spinner-n${this.dotCount}`,
       this.size === 'sm' ? 'size-8' : this.size === 'lg' ? 'size-16' : 'size-12',
     );
   }
 
   get dotClass() {
-    return this.size === 'sm' ? 'size-1' : this.size === 'lg' ? 'size-3' : 'size-2';
+    const size = this.size === 'sm' ? 'size-1' : this.size === 'lg' ? 'size-3' : 'size-2';
+    return `queue-spinner-dot absolute rounded-full bg-primary ${size}`;
   }
 }

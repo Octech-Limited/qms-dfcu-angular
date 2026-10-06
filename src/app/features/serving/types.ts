@@ -34,6 +34,7 @@ export type ActiveCounter = {
   queue: { id: string; name: string };
   branchId: string;
   available: boolean;
+  unavailableReason?: string | null;
   averageServingTime?: string;
   averageServingSeconds?: number;
 };

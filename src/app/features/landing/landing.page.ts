@@ -7,10 +7,16 @@ import { UiButton } from '../../shared/ui/ui';
 @Component({
   selector: 'app-landing',
   imports: [LucideAngularModule, UiButton],
+  styles: [
+    `
+      .landing-backdrop {
+        background-image: url('/bg.jpg');
+      }
+    `,
+  ],
   template: `
     <main
-      class="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat p-6"
-      style="background-image: url('/bg.jpg')"
+      class="landing-backdrop flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat p-6"
     >
       <div class="w-full max-w-6xl space-y-12">
         <header class="space-y-4 bg-transparent text-center">

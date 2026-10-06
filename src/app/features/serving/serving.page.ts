@@ -27,6 +27,7 @@ import {
   ChangeCategoryDialogComponent,
   HoldTicketDialogComponent,
   MultipleTransactionsDialogComponent,
+  UnavailableReasonDialogComponent,
 } from './components/serving-dialogs.component';
 import { CounterAvailabilityHintComponent } from './components/counter-availability-hint.component';
 import { ServingDeskService } from './serving.service';
@@ -51,6 +52,7 @@ import { ServingDeskService } from './serving.service';
     HeldTicketsCardComponent,
     RedirectedTicketsCardComponent,
     HoldTicketDialogComponent,
+    UnavailableReasonDialogComponent,
     ActionsDialogComponent,
     ChangeCategoryDialogComponent,
     MultipleTransactionsDialogComponent,
@@ -203,6 +205,12 @@ import { ServingDeskService } from './serving.service';
         (holdReasonChange)="desk.holdReason.set($event)"
         (confirm)="desk.holdTicket()"
         (close)="desk.holdDialogOpen.set(false)"
+      />
+      <app-unavailable-reason-dialog
+        [open]="desk.unavailableDialogOpen()"
+        [actionPending]="desk.actionPending()"
+        (confirm)="desk.confirmUnavailable($event)"
+        (close)="desk.closeUnavailableDialog()"
       />
       <app-actions-dialog
         [open]="desk.actionsDialogOpen()"

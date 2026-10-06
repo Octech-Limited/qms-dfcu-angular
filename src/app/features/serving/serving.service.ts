@@ -12,6 +12,7 @@ import type {
   TicketServiceHistoryItem,
   TransactionSelection,
 } from './types';
+import type { UnavailableReason } from './unavailable-reasons';
 
 const SLA_GRACE_SECONDS = 30;
 const SLA_LIMIT_SECONDS = 5 * 60;
@@ -47,6 +48,7 @@ export class ServingDeskService implements OnDestroy {
   readonly holdDialogOpen = signal(false);
   readonly holdReason = signal('');
   readonly actionsDialogOpen = signal(false);
+  readonly unavailableDialogOpen = signal(false);
   readonly changeCategoryOpen = signal(false);
   readonly multiTxOpen = signal(false);
   readonly selectedTransactions = signal<TransactionSelection[]>([]);
@@ -292,6 +294,7 @@ export class ServingDeskService implements OnDestroy {
       this.currentTicket() ||
       this.suppressAutoFetch ||
       this.actionsDialogOpen() ||
+      this.unavailableDialogOpen() ||
       this.changeCategoryOpen() ||
       this.actionPending() ||
       this.fetchInFlight
@@ -514,21 +517,58 @@ export class ServingDeskService implements OnDestroy {
   async toggleAvailability() {
     const counter = this.activeCounter();
     if (!counter || this.actionPending()) return;
+    if (counter.available) {
+      this.openUnavailableDialog();
+      return;
+    }
+    await this.setAvailability(true);
+  }
+
+  openUnavailableDialog() {
+    this.actionsDialogOpen.set(false);
+    this.suppressAutoFetch = true;
+    this.unavailableDialogOpen.set(true);
+  }
+
+  closeUnavailableDialog() {
+    this.unavailableDialogOpen.set(false);
+    if (!this.currentTicket() && this.activeCounter()?.available) {
+      this.suppressAutoFetch = false;
+    }
+  }
+
+  async confirmUnavailable(reason: UnavailableReason) {
+    const ok = await this.setAvailability(false, reason);
+    if (ok) this.unavailableDialogOpen.set(false);
+  }
+
+  private async setAvailability(next: boolean, reason?: UnavailableReason) {
+    const counter = this.activeCounter();
+    if (!counter || this.actionPending()) return false;
     this.actionPending.set('togglingAvailability');
     try {
-      const next = !counter.available;
       const updated = await this.api.put<ActiveCounter>('/api/bank/counter', {
         available: next,
+        ...(reason ? { unavailableReason: reason } : {}),
       });
-      this.activeCounter.set(this.normalizeCounter({ ...counter, ...updated, available: next }));
+      this.activeCounter.set(
+        this.normalizeCounter({
+          ...counter,
+          ...updated,
+          available: next,
+          unavailableReason: next ? null : reason ?? updated.unavailableReason ?? null,
+        }),
+      );
       if (next) {
         this.suppressAutoFetch = false;
         await this.fetchNextTicket({ silent: true });
       } else {
         this.suppressAutoFetch = true;
       }
+      return true;
     } catch {
       this.toast.error('Failed to update availability');
+      return false;
     } finally {
       this.actionPending.set(null);
     }
@@ -602,7 +642,6 @@ export class ServingDeskService implements OnDestroy {
   }
 
   goUnavailableFromActions() {
-    void this.toggleAvailability();
-    this.actionsDialogOpen.set(false);
+    this.openUnavailableDialog();
   }
 }

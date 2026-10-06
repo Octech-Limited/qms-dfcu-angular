@@ -173,6 +173,7 @@ export const counters = mssqlTable(
 		subSubItemId: str(),
 		branchId: str().notNull(),
 		available: bit().notNull(),
+		unavailableReason: str(),
 		createdAt: ts().notNull(),
 		updatedAt: ts().notNull()
 	},
@@ -270,6 +271,7 @@ export const counterAvailabilityEvents = mssqlTable(
 		id: id(),
 		counterId: str().notNull(),
 		eventType: str().notNull(),
+		reason: str(),
 		at: ts().notNull(),
 		createdAt: ts().notNull(),
 		updatedAt: ts().notNull()

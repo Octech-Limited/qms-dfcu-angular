@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-angular';
 import { ApiService } from '../../core/api.service';
+import { cspNonceAttr, cssColor, cssIdent } from '../../core/csp-nonce';
 import { ToastService } from '../../core/toast.service';
 import { formatInEat } from '../../core/timezone';
 import {
@@ -53,6 +54,7 @@ type Announcement = {
     UiQueueSpinner,
   ],
   template: `
+    <style [attr.nonce]="cspNonce" [textContent]="typeCss()"></style>
     <div class="flex flex-col gap-6">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-xl font-bold tracking-tight">Announcements</h2>
@@ -127,23 +129,19 @@ type Announcement = {
                         <td class="px-4 py-3">
                           <div class="flex items-center gap-3">
                             <span
-                              class="inline-flex min-w-[4rem] items-center justify-center rounded-full px-3 py-1 text-sm font-semibold uppercase tracking-wide"
-                              [style.backgroundColor]="type.backgroundColor"
-                              [style.color]="type.textColor"
+                              class="type-swatch-{{ cssId(type.id) }} inline-flex min-w-[4rem] items-center justify-center rounded-full px-3 py-1 text-sm font-semibold uppercase tracking-wide"
                               >{{ type.name }}</span
                             >
                             <div class="flex items-center gap-2 text-xs text-muted-foreground">
                               <div class="flex items-center gap-1">
                                 <span
-                                  class="h-4 w-4 rounded"
-                                  [style.backgroundColor]="type.backgroundColor"
+                                  class="type-bg-{{ cssId(type.id) }} h-4 w-4 rounded"
                                 ></span>
                                 <span>{{ type.backgroundColor }}</span>
                               </div>
                               <div class="flex items-center gap-1">
                                 <span
-                                  class="h-4 w-4 rounded border"
-                                  [style.backgroundColor]="type.textColor"
+                                  class="type-fg-{{ cssId(type.id) }} h-4 w-4 rounded border"
                                 ></span>
                                 <span>{{ type.textColor }}</span>
                               </div>
@@ -284,9 +282,7 @@ type Announcement = {
                         <td class="px-4 py-3">
                           @if (resolveType(announcement.type); as type) {
                             <span
-                              class="inline-flex min-w-[4rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase"
-                              [style.backgroundColor]="type.backgroundColor"
-                              [style.color]="type.textColor"
+                              class="type-swatch-{{ cssId(type.id) }} inline-flex min-w-[4rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase"
                               >{{ type.name }}</span
                             >
                           } @else {
@@ -426,9 +422,7 @@ type Announcement = {
               <div class="flex items-center gap-3">
                 <span class="text-sm text-muted-foreground">Preview</span>
                 <span
-                  class="inline-flex min-w-[4rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
-                  [style.backgroundColor]="typeForm.backgroundColor"
-                  [style.color]="typeForm.textColor"
+                  class="type-form-preview inline-flex min-w-[4rem] items-center justify-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
                   >{{ typeForm.name || 'Sample' }}</span
                 >
               </div>
@@ -619,6 +613,7 @@ type Announcement = {
 export class AnnouncementsPage implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
+  readonly cspNonce = cspNonceAttr();
 
   readonly icons = {
     Plus,
@@ -699,6 +694,23 @@ export class AnnouncementsPage implements OnInit {
       backgroundColor: '#0e4480',
       textColor: '#ffffff',
     };
+  }
+
+  cssId(id: string) {
+    return cssIdent(id);
+  }
+
+  typeCss() {
+    const rules = this.types().map((type) => {
+      const id = cssIdent(type.id);
+      const background = cssColor(type.backgroundColor, '#0e4480');
+      const text = cssColor(type.textColor, '#ffffff');
+      return `.type-swatch-${id}{background-color:${background};color:${text}}.type-bg-${id}{background-color:${background}}.type-fg-${id}{background-color:${text}}`;
+    });
+    const background = cssColor(this.typeForm.backgroundColor, '#0e4480');
+    const text = cssColor(this.typeForm.textColor, '#ffffff');
+    rules.push(`.type-form-preview{background-color:${background};color:${text}}`);
+    return rules.join('');
   }
 
   emptyAnnouncementForm() {

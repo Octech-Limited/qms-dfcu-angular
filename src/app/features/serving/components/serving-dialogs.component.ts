@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Loader2, LucideAngularModule } from 'lucide-angular';
 import { HOLD_REASONS } from '../hold-reasons';
+import { UNAVAILABLE_REASONS, type UnavailableReason } from '../unavailable-reasons';
 import { UiButton } from '../../../shared/ui/ui';
 import type { QueueItem, ServingActionPending, Ticket, TransactionSelection } from '../types';
 import { CounterAvailabilityHintComponent } from './counter-availability-hint.component';
@@ -65,6 +66,51 @@ export class HoldTicketDialogComponent {
   @Output() close = new EventEmitter<void>();
   readonly reasons = HOLD_REASONS;
   readonly icons = { Loader2 };
+}
+
+@Component({
+  selector: 'app-unavailable-reason-dialog',
+  imports: [UiButton],
+  template: `
+    @if (open) {
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+        (click)="actionPending ? $event.preventDefault() : close.emit()"
+      >
+        <div
+          class="w-full max-w-md rounded-xl border bg-card p-6 shadow-xl"
+          (click)="$event.stopPropagation()"
+        >
+          <h3 class="text-lg font-semibold">Go Unavailable</h3>
+          <p class="mt-1 text-sm text-muted-foreground">Select a reason</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            @for (reason of reasons; track reason) {
+              <button
+                type="button"
+                class="rounded-full border px-3 py-1 text-xs"
+                [disabled]="!!actionPending"
+                (click)="confirm.emit(reason)"
+              >
+                {{ reason }}
+              </button>
+            }
+          </div>
+          <div class="mt-4 flex justify-end">
+            <button uiBtn variant="outline" type="button" [disabled]="!!actionPending" (click)="close.emit()">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  `,
+})
+export class UnavailableReasonDialogComponent {
+  @Input() open = false;
+  @Input() actionPending: ServingActionPending = null;
+  @Output() confirm = new EventEmitter<UnavailableReason>();
+  @Output() close = new EventEmitter<void>();
+  readonly reasons = UNAVAILABLE_REASONS;
 }
 
 @Component({

@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { cspNonceAttr, cssColor } from '../../core/csp-nonce';
 import {
   ArrowRight,
   Facebook,
@@ -152,6 +153,7 @@ function buildAudioFiles(
       [class.w-full]="fillParent"
       [class.h-screen]="!fillParent"
     >
+      <style [attr.nonce]="cspNonce" [textContent]="hallLayoutCss()"></style>
       @if (alertVisible()) {
         <div
           class="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-md border border-border bg-background p-4 shadow-md"
@@ -298,15 +300,10 @@ function buildAudioFiles(
                 </div>
               } @else {
                 <div class="h-48 overflow-hidden bg-accent/50 p-2">
-                  <div
-                    class="grid h-full grid-rows-3 gap-2"
-                    [style.gridTemplateColumns]="upcomingGridCols()"
-                  >
-                    @for (cell of upcomingCells(); track cell.ticket.id) {
+                  <div class="upcoming-grid grid h-full grid-rows-3 gap-2">
+                    @for (cell of upcomingCells(); track cell.ticket.id; let i = $index) {
                       <div
-                        class="flex h-full items-center justify-center rounded-lg border-2 border-primary-foreground/30 bg-primary shadow-md"
-                        [style.gridRow]="cell.row"
-                        [style.gridColumn]="cell.col"
+                        class="upcoming-cell-{{ i }} flex h-full items-center justify-center rounded-lg border-2 border-primary-foreground/30 bg-primary shadow-md"
                       >
                         <span
                           class="text-5xl font-bold text-primary-foreground drop-shadow-md"
@@ -376,12 +373,11 @@ function buildAudioFiles(
           @if (socials().length > 0) {
             @if (currentSocial(); as social) {
               <div
-                class="relative z-10 mt-auto mb-1.5 flex w-full shrink-0 items-center justify-center px-3"
+                class="relative z-10 mt-auto mb-1.5 flex w-full shrink-0 items-center justify-center bg-primary px-3 text-white"
                 [class.h-24]="social.handle.length <= 12"
                 [class.min-h-24]="social.handle.length <= 12"
                 [class.h-20]="social.handle.length > 12"
                 [class.min-h-20]="social.handle.length > 12"
-                style="background-color: var(--primary); color: #ffffff"
               >
                 <div
                   class="flex max-w-full items-center justify-center gap-3"
@@ -391,14 +387,12 @@ function buildAudioFiles(
                     [img]="socialPlatformIcon(social.platform)"
                     [size]="socialIconSize(social.handle)"
                     color="#ffffff"
-                    class="shrink-0"
-                    style="color: #ffffff"
+                    class="shrink-0 text-white"
                   ></lucide-angular>
                   <span
-                    class="max-w-full truncate font-bold"
+                    class="max-w-full truncate font-bold text-white"
                     [class.text-4xl]="social.handle.length <= 12"
                     [class.text-2xl]="social.handle.length > 12"
-                    style="color: #ffffff"
                     [title]="social.handle"
                     >{{ social.handle }}</span
                   >
@@ -412,19 +406,13 @@ function buildAudioFiles(
       <footer class="shrink-0 overflow-hidden bg-primary pb-2 text-primary-foreground">
         <div class="hall-marquee">
           @if (currentMarquee().typeInfo; as type) {
-            <div
-              class="hall-marquee-type"
-              [style.backgroundColor]="type.backgroundColor"
-              [style.color]="type.textColor"
-              [style.--type-color]="type.backgroundColor"
-            >
+            <div class="hall-marquee-type">
               <span>{{ type.name }}</span>
             </div>
           }
           <div class="hall-marquee-scroll">
             <div
               class="hall-marquee-inner"
-              [style.animationDuration]="marqueeDuration() + 's'"
               [attr.data-key]="currentMarquee().id + '-' + marqueeIndex()"
             >
               <span class="hall-marquee-text">{{
@@ -483,6 +471,7 @@ function buildAudioFiles(
         align-items: center;
         white-space: nowrap;
         animation: hall-marquee-slide linear infinite;
+        animation-duration: var(--marquee-duration, 20s);
         padding-left: 100%;
       }
       .hall-marquee-text {
@@ -507,6 +496,7 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly platform = inject(PLATFORM_ID);
+  readonly cspNonce = cspNonceAttr();
 
   @Input({ required: true }) branchId = '';
   @Input() preview = false;
@@ -590,7 +580,7 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
 
   currentMarquee() {
     const list = this.marqueeItems();
-    if (!list.length) return { id: 'fallback', text: 'Welcome to our service' };
+    if (!list.length) return { id: 'fallback', text: 'Welcome to our service', typeInfo: undefined };
     return list[this.marqueeIndex() % list.length] ?? list[0];
   }
 
@@ -598,6 +588,23 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
     const text = this.currentMarquee().text || '';
     if (text.length < 50) return Math.max(text.length * 0.5, 20);
     return Math.max(text.length * 0.35, 20);
+  }
+
+  hallLayoutCss() {
+    const cols = Math.max(1, Math.ceil(this.upcoming().length / 3));
+    const cells = this.upcomingCells()
+      .map(
+        (cell, index) =>
+          `.upcoming-cell-${index}{grid-row:${cell.row};grid-column:${cell.col}}`,
+      )
+      .join('');
+    const type = this.currentMarquee().typeInfo;
+    const typeRule = type
+      ? `.hall-marquee-type{background-color:${cssColor(type.backgroundColor, 'transparent')};color:${cssColor(type.textColor, '#ffffff')};--type-color:${cssColor(type.backgroundColor, '#ffffff')}}`
+      : '';
+    const duration = this.marqueeDuration();
+    const safeDuration = Number.isFinite(duration) ? Math.min(Math.max(duration, 1), 600) : 20;
+    return `.upcoming-grid{grid-template-columns:repeat(${cols},minmax(120px,1fr))}${cells}${typeRule}.hall-marquee-inner{--marquee-duration:${safeDuration}s}`;
   }
 
   upcomingCells() {
@@ -611,11 +618,6 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
       });
     });
     return cells;
-  }
-
-  upcomingGridCols() {
-    const cols = Math.max(1, Math.ceil(this.upcoming().length / 3));
-    return `repeat(${cols}, minmax(120px, 1fr))`;
   }
 
   flagFor(code?: string) {

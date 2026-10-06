@@ -10,7 +10,7 @@ function sharedDirectives(): string[] {
 	return [
 		"default-src 'self'",
 		"script-src-attr 'none'",
-		"style-src-attr 'unsafe-inline'",
+		"style-src-attr 'none'",
 		"font-src 'self' data:",
 		"img-src 'self' data:",
 		"media-src 'self' https://www.youtube.com",
@@ -30,14 +30,12 @@ function scriptSrc(nonce?: string): string {
 	const parts = [
 		SCRIPT_HOSTS,
 		...(nonce ? [`'nonce-${nonce}'`] : []),
-		...(isDev ? ["'unsafe-eval'", "'unsafe-inline'"] : [])
+		...(isDev ? ["'unsafe-eval'"] : [])
 	];
 	return `script-src ${parts.join(' ')}`;
 }
 
 function styleSrc(nonce?: string): string {
-	const isDev = process.env['NODE_ENV'] === 'development';
-	if (isDev) return "style-src 'self' 'unsafe-inline'";
 	const parts = ["'self'", ...(nonce ? [`'nonce-${nonce}'`] : [])];
 	return `style-src ${parts.join(' ')}`;
 }
@@ -64,8 +62,8 @@ function promoteDeferredStylesheets(html: string): string {
 /**
  * Angular reads the CSP nonce from a `[ngCspNonce]` attribute on a descendant of
  * `<body>` (not from a `<meta>` tag) and copies it onto component `<style>` tags
- * it creates later. Production `style-src` only allows `'self'` plus that nonce,
- * so without this attribute those styles are blocked and layout that lives only
+ * it creates later. `style-src` only allows `'self'` plus that nonce, and
+ * `style-src-attr` is `'none'`, so without this attribute those styles are blocked and layout that lives only
  * in component CSS (the hall marquee) falls back to unstyled block flow.
  */
 function stampNgCspNonce(html: string, nonce: string): string {

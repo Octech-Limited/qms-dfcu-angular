@@ -72,7 +72,7 @@ Chart.register(
     <ui-card>
       <ui-card-header><ui-card-title>Tickets Per Hour</ui-card-title></ui-card-header>
       <ui-card-content class="h-80">
-        <canvas #chartCanvas></canvas>
+        <canvas #chartCanvas class="block h-full w-full"></canvas>
       </ui-card-content>
     </ui-card>
   `,

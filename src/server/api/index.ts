@@ -75,6 +75,7 @@ import { validateUgandanPhoneNumber } from '../phone';
 import { getAudioLanguageDirNames, isValidTicketLanguageString, MAX_TICKET_LANGUAGE_LENGTH } from '../audioLanguages';
 import { isCustomFeedbackLink, ratingSmsUrl, smsService } from '../sms';
 import { COUNTER_AVAILABILITY_EVENT } from '../ticketStatus';
+import { isUnavailableReason } from '../../app/features/serving/unavailable-reasons';
 import { registerAdsRoutes } from '../adsRoutes';
 
 function wrap(fn: (req: Request, res: Response) => Promise<void>) {
@@ -1921,15 +1922,28 @@ function registerOrgRoutes(app: Express): void {
 			if (!counterId) return sendJson(res, { error: 'No counter' }, 400);
 			const body = req.body ?? {};
 			const patch: Record<string, unknown> = { updatedAt: eatNow() };
+			let beforeCounter: typeof counters.$inferSelect | undefined;
+			let pauseReason: string | null = null;
 
 			if (typeof body.available === 'boolean') {
-				patch.available = body.available;
-				await recordCounterAvailabilityEvent(
-					counterId,
-					body.available
-						? COUNTER_AVAILABILITY_EVENT.AVAILABLE
-						: COUNTER_AVAILABILITY_EVENT.PAUSED
-				);
+				const [current] = await db
+					.select()
+					.top(1)
+					.from(counters)
+					.where(eq(counters.id, counterId));
+				if (!current) return sendJson(res, { error: 'No counter' }, 400);
+				beforeCounter = current;
+				if (body.available) {
+					patch.available = true;
+					patch.unavailableReason = null;
+				} else {
+					if (!isUnavailableReason(body.unavailableReason)) {
+						return sendJson(res, { error: 'Select a reason for going unavailable' }, 400);
+					}
+					pauseReason = body.unavailableReason;
+					patch.available = false;
+					patch.unavailableReason = pauseReason;
+				}
 			}
 			if (body.queueId) patch.queueId = String(body.queueId);
 			if (body.counterNumber != null && body.counterNumber !== '') {
@@ -1973,6 +1987,41 @@ function registerOrgRoutes(app: Express): void {
 
 			await db.update(counters).set(patch).where(eq(counters.id, counterId));
 			const [row] = await db.select().top(1).from(counters).where(eq(counters.id, counterId));
+
+			if (typeof body.available === 'boolean') {
+				await recordCounterAvailabilityEvent(
+					counterId,
+					body.available
+						? COUNTER_AVAILABILITY_EVENT.AVAILABLE
+						: COUNTER_AVAILABILITY_EVENT.PAUSED,
+					body.available ? null : pauseReason
+				);
+			}
+
+			const availabilityToggled =
+				typeof body.available === 'boolean' &&
+				beforeCounter != null &&
+				body.available !== beforeCounter.available;
+			if (availabilityToggled && auth.session.actorType === 'serving') {
+				await recordActivity({
+					action: body.available
+						? AUDIT_ACTION.SERVING_AVAILABLE
+						: AUDIT_ACTION.SERVING_PAUSED,
+					collectionName: 'Counter',
+					operation: body.available ? 'available' : 'paused',
+					documentId: counterId,
+					userId: auth.session.userId,
+					performedBy: auth.session.userId,
+					counterId,
+					description: body.available
+						? `Went available at counter ${row?.counterNumber ?? counterId}`
+						: `Paused counter ${row?.counterNumber ?? counterId} (${pauseReason})`,
+					before: beforeCounter,
+					after: row,
+					metadata: { branchId: auth.session.branchId }
+				});
+			}
+
 			sendJson(res, row);
 		})
 	);
@@ -2105,7 +2154,16 @@ function registerOrgRoutes(app: Express): void {
 			}
 
 			const patch: Record<string, unknown> = { updatedAt: eatNow() };
-			if (typeof body.available === 'boolean') patch.available = body.available;
+			let pauseReason: string | null = null;
+			if (typeof body.available === 'boolean') {
+				patch.available = body.available;
+				if (body.available) {
+					patch.unavailableReason = null;
+				} else if (isUnavailableReason(body.unavailableReason)) {
+					pauseReason = body.unavailableReason;
+					patch.unavailableReason = pauseReason;
+				}
+			}
 			if (body.queueId) patch.queueId = String(body.queueId);
 			if (nextCounterNumber !== undefined) patch.counterNumber = nextCounterNumber;
 			if (body.subItemId !== undefined) patch.subItemId = body.subItemId || null;
@@ -2119,7 +2177,8 @@ function registerOrgRoutes(app: Express): void {
 					id,
 					body.available
 						? COUNTER_AVAILABILITY_EVENT.AVAILABLE
-						: COUNTER_AVAILABILITY_EVENT.PAUSED
+						: COUNTER_AVAILABILITY_EVENT.PAUSED,
+					body.available ? null : pauseReason
 				);
 			}
 
@@ -2139,7 +2198,9 @@ function registerOrgRoutes(app: Express): void {
 					counterId: id,
 					description: body.available
 						? `Went available at counter ${updated?.counterNumber ?? id}`
-						: `Paused counter ${updated?.counterNumber ?? id}`,
+						: pauseReason
+							? `Paused counter ${updated?.counterNumber ?? id} (${pauseReason})`
+							: `Paused counter ${updated?.counterNumber ?? id}`,
 					before: counter,
 					after: updated,
 					metadata: { branchId: session.branchId }

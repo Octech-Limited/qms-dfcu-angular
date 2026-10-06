@@ -629,6 +629,7 @@ async function createNewTables(tx) {
 		   id nvarchar(1000) NOT NULL CONSTRAINT counter_availability_events_pkey PRIMARY KEY,
 		   counterId nvarchar(1000) NOT NULL,
 		   eventType nvarchar(1000) NOT NULL,
+		   reason nvarchar(1000) NULL,
 		   at datetime2 NOT NULL,
 		   createdAt datetime2 NOT NULL CONSTRAINT counter_availability_events_createdAt_df DEFAULT (getdate()),
 		   updatedAt datetime2 NOT NULL
@@ -697,6 +698,8 @@ async function applyMigration(tx, plans, counters) {
 	await addColumn(tx, 'banktickets', 'oldContacts', 'nvarchar(max) NULL');
 	await addColumn(tx, 'counters', 'subItemId', 'nvarchar(1000) NULL');
 	await addColumn(tx, 'counters', 'subSubItemId', 'nvarchar(1000) NULL');
+	await addColumn(tx, 'counters', 'unavailableReason', 'nvarchar(1000) NULL');
+	await addColumn(tx, 'counter_availability_events', 'reason', 'nvarchar(1000) NULL');
 	await addColumn(tx, 'sub_menu_items', 'priority', 'bit NOT NULL CONSTRAINT sub_menu_items_priority_df DEFAULT 0');
 	await addColumn(tx, 'sub_sub_menu_items', 'priority', 'bit NOT NULL CONSTRAINT sub_sub_menu_items_priority_df DEFAULT 0');
 	for (const column of [
