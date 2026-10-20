@@ -644,9 +644,27 @@ export class AnnouncementsPage implements OnInit {
   readonly currentPage = signal(1);
   readonly itemsPerPage = 10;
 
-  searchQuery = '';
-  typeFilter = 'all';
-  statusFilter = 'all';
+  private readonly _searchQuery = signal('');
+  get searchQuery() {
+    return this._searchQuery();
+  }
+  set searchQuery(value: string) {
+    this._searchQuery.set(value);
+  }
+  private readonly _typeFilter = signal('all');
+  get typeFilter() {
+    return this._typeFilter();
+  }
+  set typeFilter(value: string) {
+    this._typeFilter.set(value);
+  }
+  private readonly _statusFilter = signal('all');
+  get statusFilter() {
+    return this._statusFilter();
+  }
+  set statusFilter(value: string) {
+    this._statusFilter.set(value);
+  }
 
   typeForm = this.emptyTypeForm();
   announcementForm = this.emptyAnnouncementForm();

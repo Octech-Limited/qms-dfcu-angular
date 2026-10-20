@@ -395,10 +395,34 @@ export class BranchesPage implements OnInit {
   readonly currentPage = signal(1);
   readonly itemsPerPage = 10;
 
-  searchQuery = '';
-  platformFilter = 'all';
-  hasQmsFilter = 'all';
-  statusFilter = 'all';
+  private readonly _searchQuery = signal('');
+  get searchQuery() {
+    return this._searchQuery();
+  }
+  set searchQuery(value: string) {
+    this._searchQuery.set(value);
+  }
+  private readonly _platformFilter = signal('all');
+  get platformFilter() {
+    return this._platformFilter();
+  }
+  set platformFilter(value: string) {
+    this._platformFilter.set(value);
+  }
+  private readonly _hasQmsFilter = signal('all');
+  get hasQmsFilter() {
+    return this._hasQmsFilter();
+  }
+  set hasQmsFilter(value: string) {
+    this._hasQmsFilter.set(value);
+  }
+  private readonly _statusFilter = signal('all');
+  get statusFilter() {
+    return this._statusFilter();
+  }
+  set statusFilter(value: string) {
+    this._statusFilter.set(value);
+  }
 
   form = this.emptyForm();
 

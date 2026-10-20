@@ -302,8 +302,20 @@ export class ExchangePage implements OnInit {
   readonly currentPage = signal(1);
   readonly itemsPerPage = 10;
 
-  searchQuery = '';
-  countryFilter = 'all';
+  private readonly _searchQuery = signal('');
+  get searchQuery() {
+    return this._searchQuery();
+  }
+  set searchQuery(value: string) {
+    this._searchQuery.set(value);
+  }
+  private readonly _countryFilter = signal('all');
+  get countryFilter() {
+    return this._countryFilter();
+  }
+  set countryFilter(value: string) {
+    this._countryFilter.set(value);
+  }
   form = {
     countryName: '',
     countryCode: '',

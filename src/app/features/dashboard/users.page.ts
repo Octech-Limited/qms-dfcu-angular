@@ -294,10 +294,34 @@ export class UsersPage implements OnInit {
   readonly currentPage = signal(1);
   readonly itemsPerPage = 10;
 
-  searchQuery = '';
-  roleFilter = 'all';
-  branchFilter = 'all';
-  statusFilter = 'all';
+  private readonly _searchQuery = signal('');
+  get searchQuery() {
+    return this._searchQuery();
+  }
+  set searchQuery(value: string) {
+    this._searchQuery.set(value);
+  }
+  private readonly _roleFilter = signal('all');
+  get roleFilter() {
+    return this._roleFilter();
+  }
+  set roleFilter(value: string) {
+    this._roleFilter.set(value);
+  }
+  private readonly _branchFilter = signal('all');
+  get branchFilter() {
+    return this._branchFilter();
+  }
+  set branchFilter(value: string) {
+    this._branchFilter.set(value);
+  }
+  private readonly _statusFilter = signal('all');
+  get statusFilter() {
+    return this._statusFilter();
+  }
+  set statusFilter(value: string) {
+    this._statusFilter.set(value);
+  }
   form = { email: '', username: '', roleId: '', branchId: '' };
 
   readonly filtered = computed(() => {

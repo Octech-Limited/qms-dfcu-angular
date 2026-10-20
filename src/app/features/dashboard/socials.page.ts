@@ -317,8 +317,20 @@ export class SocialsPage implements OnInit {
   readonly currentPage = signal(1);
   readonly itemsPerPage = 10;
 
-  searchQuery = '';
-  platformFilter = 'all';
+  private readonly _searchQuery = signal('');
+  get searchQuery() {
+    return this._searchQuery();
+  }
+  set searchQuery(value: string) {
+    this._searchQuery.set(value);
+  }
+  private readonly _platformFilter = signal('all');
+  get platformFilter() {
+    return this._platformFilter();
+  }
+  set platformFilter(value: string) {
+    this._platformFilter.set(value);
+  }
   form = this.emptyForm();
 
   readonly filtered = computed(() => {

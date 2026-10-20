@@ -235,7 +235,13 @@ export class RolesPage implements OnInit {
   readonly currentPage = signal(1);
   readonly itemsPerPage = 12;
 
-  searchQuery = '';
+  private readonly _searchQuery = signal('');
+  get searchQuery() {
+    return this._searchQuery();
+  }
+  set searchQuery(value: string) {
+    this._searchQuery.set(value);
+  }
   formName = '';
   formPermissions: Record<string, boolean> = this.emptyPermissions();
 
