@@ -274,3 +274,16 @@ Ensure the SQL Server account can read/write the QMS database and that the Node 
 - **[docs/db.md](docs/db.md)** — Database tables, relationships, serving scenarios, diagrams
 - Schema source of truth: `src/server/db/schema.ts`
 - Ticket status constants: `src/server/ticketStatus.ts`
+
+---
+
+## Kiosk printing
+
+When a kiosk ticket is created without a valid phone number, the app sends a non-fatal print job to the branch kiosk printer before returning the API response.
+
+- Windows / default HTML printer: `http://{kioskIpAddress}:3002/print` (fallback `PRINT_SERVER_URL`)
+- Linux ESC/POS printer: `http://{kioskIpAddress}:3003/print` (fallback `ESC_POS_PRINT_SERVER_URL`)
+- The branch record must have a `platform` value (`Linux` or otherwise default HTML/Windows) and a `kioskIpAddress` for the local kiosk device.
+- ESC/POS uses the printer name from `ESC_POS_PRINTER_NAME` (default `POS80`).
+
+This behavior matches the original Next.js ticket flow and is intended for local kiosk devices running the print listener services on ports 3002 and 3003.

@@ -35,6 +35,9 @@
             "ssr": {
               "entry": "src/server.ts"
             },
+            "externalDependencies": [
+              "sharp"
+            ],
             "allowedCommonJsDependencies": [
               "qrcode",
               "dotenv",
@@ -43,7 +46,8 @@
               "ldapjs",
               "iron-session",
               "pino",
-              "sonic-boom"
+              "sonic-boom",
+              "sharp"
             ]
           },
           "configurations": {
