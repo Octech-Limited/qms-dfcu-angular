@@ -111,6 +111,7 @@ function startTicketExpiration() {
 
 if (isMainModule(import.meta.url) || process.env['pm_id']) {
 	const port = Number(process.env['PORT'] || 4000);
+	process.env['PORT'] = String(port); // SSR API calls read this to reach the server over loopback
 	const host = process.env['HOST'] || '0.0.0.0';
 	app.listen(port, host, (error) => {
 		if (error) throw error;

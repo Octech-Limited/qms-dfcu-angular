@@ -11,7 +11,9 @@ export const apiInterceptor: HttpInterceptorFn = (req, next) => {
 	let url = req.url;
 	if (incoming && !/^https?:\/\//i.test(url)) {
 		try {
-			url = new URL(url, incoming.url).toString();
+			// SSR calls our own API, so use loopback; the browser-facing host may not resolve from the server.
+			const port = process.env['PORT'];
+			url = new URL(url, port ? `http://127.0.0.1:${port}` : incoming.url).toString();
 		} catch {
 			url = req.url;
 		}

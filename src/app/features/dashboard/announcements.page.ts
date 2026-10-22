@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DoCheck, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AlertTriangle,
@@ -13,7 +13,7 @@ import {
   X,
 } from 'lucide-angular';
 import { ApiService } from '../../core/api.service';
-import { cspNonceAttr, cssColor, cssIdent } from '../../core/csp-nonce';
+import { cssColor, cssIdent, removeDynamicCss, setDynamicCss } from '../../core/csp-nonce';
 import { ToastService } from '../../core/toast.service';
 import { formatInEat } from '../../core/timezone';
 import {
@@ -54,7 +54,6 @@ type Announcement = {
     UiQueueSpinner,
   ],
   template: `
-    <style [attr.nonce]="cspNonce" [textContent]="typeCss()"></style>
     <div class="flex flex-col gap-6">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-xl font-bold tracking-tight">Announcements</h2>
@@ -610,10 +609,10 @@ type Announcement = {
     </div>
   `,
 })
-export class AnnouncementsPage implements OnInit {
+export class AnnouncementsPage implements OnInit, DoCheck, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
-  readonly cspNonce = cspNonceAttr();
+  private readonly styleId = 'announcement-type-css';
 
   readonly icons = {
     Plus,
@@ -699,6 +698,14 @@ export class AnnouncementsPage implements OnInit {
     const start = (this.currentPage() - 1) * this.itemsPerPage;
     return this.filtered().slice(start, start + this.itemsPerPage);
   });
+
+  ngDoCheck() {
+    setDynamicCss(this.styleId, this.typeCss());
+  }
+
+  ngOnDestroy() {
+    removeDynamicCss(this.styleId);
+  }
 
   async ngOnInit() {
     this.loading.set(true);

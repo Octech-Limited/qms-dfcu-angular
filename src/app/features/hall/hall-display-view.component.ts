@@ -6,11 +6,12 @@ import {
   OnInit,
   PLATFORM_ID,
   SimpleChanges,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { cspNonceAttr, cssColor } from '../../core/csp-nonce';
+import { cssColor, removeDynamicCss, setDynamicCss } from '../../core/csp-nonce';
 import {
   ArrowRight,
   Facebook,
@@ -153,7 +154,6 @@ function buildAudioFiles(
       [class.w-full]="fillParent"
       [class.h-screen]="!fillParent"
     >
-      <style [attr.nonce]="cspNonce" [textContent]="hallLayoutCss()"></style>
       @if (alertVisible()) {
         <div
           class="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-md border border-border bg-background p-4 shadow-md"
@@ -496,7 +496,12 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly platform = inject(PLATFORM_ID);
-  readonly cspNonce = cspNonceAttr();
+  private static nextStyleId = 0;
+  private readonly styleId = `hall-layout-css-${HallDisplayViewComponent.nextStyleId++}`;
+
+  constructor() {
+    effect(() => setDynamicCss(this.styleId, this.hallLayoutCss()));
+  }
 
   @Input({ required: true }) branchId = '';
   @Input() preview = false;
@@ -690,6 +695,7 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
+    removeDynamicCss(this.styleId);
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.clockTimer) clearInterval(this.clockTimer);
     if (this.announceTimer) clearInterval(this.announceTimer);

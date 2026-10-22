@@ -18,3 +18,25 @@ export function cssIdent(value: string): string {
 	const ident = value.replace(/[^a-zA-Z0-9_-]/g, '');
 	return ident || 'x';
 }
+
+/**
+ * Angular's template compiler drops `<style>` elements, so generated CSS goes into a nonce-stamped
+ * `<style>` in `<head>` instead. Browser only; pass an empty string or call removeDynamicCss to clear.
+ */
+export function setDynamicCss(id: string, css: string): void {
+	if (typeof document === 'undefined') return;
+	let el = document.getElementById(id) as HTMLStyleElement | null;
+	if (!el) {
+		el = document.createElement('style');
+		el.id = id;
+		const nonce = cspNonceAttr();
+		if (nonce) el.setAttribute('nonce', nonce);
+		document.head.appendChild(el);
+	}
+	if (el.textContent !== css) el.textContent = css;
+}
+
+export function removeDynamicCss(id: string): void {
+	if (typeof document === 'undefined') return;
+	document.getElementById(id)?.remove();
+}

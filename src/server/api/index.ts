@@ -1848,6 +1848,45 @@ function registerOrgRoutes(app: Express): void {
 	);
 
 	app.get(
+		'/api/bank/counter/available',
+		wrap(async (req, res) => {
+			const auth = await requireAnySession();
+			if (auth.error) return sendAuthError(res, auth.error);
+			const branchId = String(req.query['branchId'] || '');
+			const { today, tomorrow } = todayRange();
+			const rows = await db
+				.select()
+				.from(counters)
+				.where(
+					and(
+						eq(counters.available, true),
+						gte(counters.createdAt, today),
+						lt(counters.createdAt, tomorrow),
+						...(branchId ? [eq(counters.branchId, branchId)] : [])
+					)
+				);
+			const result = [];
+			for (const row of rows) {
+				const [queue] = row.queueId
+					? await db
+							.select({ name: queues.name })
+							.top(1)
+							.from(queues)
+							.where(eq(queues.id, row.queueId))
+					: [null];
+				result.push({
+					id: row.id,
+					number: row.counterNumber,
+					queueName: queue?.name || 'Queue',
+					available: row.available,
+					queueId: row.queueId
+				});
+			}
+			sendJson(res, result);
+		})
+	);
+
+	app.get(
 		'/api/bank/counter/check-availability',
 		wrap(async (req, res) => {
 			const branchId = String(req.query['branchId'] || '');
@@ -2077,6 +2116,127 @@ function registerOrgRoutes(app: Express): void {
 			}
 
 			sendJson(res, row);
+		})
+	);
+
+	app.put(
+		'/api/bank/counter/:id',
+		wrap(async (req, res) => {
+			const auth = await requireAuth();
+			if (auth.error) return sendAuthError(res, auth.error);
+			const session = auth.session;
+			const admin = isDashboardAdmin(session);
+			if (!admin && !session.branchId) {
+				return sendJson(res, { error: 'Unauthorized' }, 401);
+			}
+
+			const id = p(req, 'id');
+			const [counter] = await db.select().top(1).from(counters).where(eq(counters.id, id));
+			if (!counter) return sendJson(res, { error: 'Counter not found' }, 404);
+			if (!admin && counter.branchId !== session.branchId) {
+				return sendJson(res, { error: 'Unauthorized' }, 401);
+			}
+
+			const body = req.body ?? {};
+			const nextCounterNumber =
+				body.counterNumber !== undefined && body.counterNumber !== null
+					? Number(body.counterNumber)
+					: undefined;
+
+			if (
+				nextCounterNumber !== undefined &&
+				nextCounterNumber !== counter.counterNumber
+			) {
+				if (!Number.isFinite(nextCounterNumber) || nextCounterNumber < 1) {
+					return sendJson(res, { error: 'Enter a valid counter number' }, 400);
+				}
+				const { today, tomorrow } = todayRange();
+				const [existing] = await db
+					.select({ id: counters.id })
+					.top(1)
+					.from(counters)
+					.where(
+						and(
+							eq(counters.branchId, counter.branchId),
+							eq(counters.counterNumber, nextCounterNumber),
+							gte(counters.createdAt, today),
+							lt(counters.createdAt, tomorrow),
+							ne(counters.id, id)
+						)
+					);
+				if (existing) {
+					return sendJson(res, { error: 'Counter number is already in use' }, 400);
+				}
+			}
+
+			const patch: Record<string, unknown> = { updatedAt: eatNow() };
+			let pauseReason: string | null = null;
+			if (typeof body.available === 'boolean') {
+				patch.available = body.available;
+				if (body.available) {
+					patch.unavailableReason = null;
+				} else if (isUnavailableReason(body.unavailableReason)) {
+					pauseReason = body.unavailableReason;
+					patch.unavailableReason = pauseReason;
+				}
+			}
+			if (body.queueId) patch.queueId = String(body.queueId);
+			if (nextCounterNumber !== undefined) patch.counterNumber = nextCounterNumber;
+			if (body.subItemId !== undefined) patch.subItemId = body.subItemId || null;
+			if (body.subSubItemId !== undefined) patch.subSubItemId = body.subSubItemId || null;
+
+			await db.update(counters).set(patch).where(eq(counters.id, id));
+			const [updated] = await db.select().top(1).from(counters).where(eq(counters.id, id));
+
+			if (typeof body.available === 'boolean' && body.available !== counter.available) {
+				await recordCounterAvailabilityEvent(
+					id,
+					body.available
+						? COUNTER_AVAILABILITY_EVENT.AVAILABLE
+						: COUNTER_AVAILABILITY_EVENT.PAUSED,
+					body.available ? null : pauseReason
+				);
+			}
+
+			const availabilityToggled =
+				typeof body.available === 'boolean' && body.available !== counter.available;
+
+			if (availabilityToggled && session.actorType === 'serving') {
+				await recordActivity({
+					action: body.available
+						? AUDIT_ACTION.SERVING_AVAILABLE
+						: AUDIT_ACTION.SERVING_PAUSED,
+					collectionName: 'Counter',
+					operation: body.available ? 'available' : 'paused',
+					documentId: id,
+					userId: session.userId,
+					performedBy: session.userId,
+					counterId: id,
+					description: body.available
+						? `Went available at counter ${updated?.counterNumber ?? id}`
+						: pauseReason
+							? `Paused counter ${updated?.counterNumber ?? id} (${pauseReason})`
+							: `Paused counter ${updated?.counterNumber ?? id}`,
+					before: counter,
+					after: updated,
+					metadata: { branchId: session.branchId }
+				});
+			} else {
+				await createAuditLog({
+					collectionName: 'Counter',
+					operation: 'update',
+					documentId: id,
+					userId: session.userId,
+					performedBy: session.userId,
+					counterId: id,
+					description: `Updated counter ${updated?.counterNumber ?? id}`,
+					before: counter,
+					after: updated,
+					metadata: { branchId: session.branchId }
+				});
+			}
+
+			sendJson(res, { success: true, message: 'Counter updated successfully' });
 		})
 	);
 
