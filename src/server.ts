@@ -12,6 +12,10 @@ import { applyCspNonces, buildCSPHeader, generateCSPNonce, getSecurityHeaders } 
 import { registerApi } from './server/api';
 import { ensureDb } from './server/db';
 import { expireTicketsPastCreationDay } from './server/ticketService';
+import { logger } from './server/logger';
+import { requestMonitorMiddleware } from './server/monitor/requestMonitor';
+import { registerMonitorRoutes } from './server/monitor/routes';
+import { recordError, startMonitor, timedJob } from './server/monitor/collector';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 const app = express();
@@ -24,6 +28,8 @@ const angularApp = new AngularNodeAppEngine({
 	allowedHosts: allowedHostsEnv,
 });
 
+startMonitor();
+app.use(requestMonitorMiddleware);
 app.use(express.json({ limit: '10mb' }));
 app.use(requestContextMiddleware);
 app.use((req, res, next) => {
@@ -40,6 +46,7 @@ app.use((req, res, next) => {
 
 app.use('/api/bank/settings/images', express.static(join(process.cwd(), 'uploads')));
 app.use('/api/bank/ads/images', express.static(join(process.cwd(), 'uploads')));
+registerMonitorRoutes(app);
 registerApi(app);
 
 app.use(
@@ -54,7 +61,13 @@ app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
 app.use((err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) => {
   if (req.path.startsWith('/api/')) {
-    console.error(err);
+    logger.error('Unhandled API error', { method: req.method, url: req.originalUrl, err });
+    recordError({
+      kind: 'handler',
+      code: (err as { code?: string })?.code,
+      route: `${req.method} ${req.route?.path ?? req.path}`,
+      message: err instanceof Error ? err.message : String(err)
+    });
     res.status(500).json({ error: 'Internal server error' });
     return;
   }
@@ -88,9 +101,9 @@ function startTicketExpiration() {
 	if (ticketExpirationStarted) return;
 	ticketExpirationStarted = true;
 	const run = () => {
-		void ensureDb()
-			.then(() => expireTicketsPastCreationDay())
-			.catch((error) => console.error('Ticket expiration sweep failed', error));
+		void timedJob('ticket-expiry-sweep', () => ensureDb().then(() => expireTicketsPastCreationDay())).catch((error) =>
+			logger.error('Ticket expiration sweep failed', error)
+		);
 	};
 	run();
 	setInterval(run, 60_000);

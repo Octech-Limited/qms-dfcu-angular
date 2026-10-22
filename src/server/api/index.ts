@@ -127,8 +127,15 @@ export function registerApi(app: Express): void {
 		'/api/health',
 		wrap(async (_req, res) => {
 			try {
+				const t0 = performance.now();
 				await db.execute(sql`select 1 as ok`);
-				sendJson(res, { ok: true, database: 'mssql' });
+				const pool = (globalThis as { mssqlPool?: { size: number; available: number; pending: number; borrowed: number } }).mssqlPool;
+				sendJson(res, {
+					ok: true,
+					database: 'mssql',
+					dbLatencyMs: Math.round(performance.now() - t0),
+					pool: pool ? { size: pool.size, available: pool.available, pending: pool.pending, borrowed: pool.borrowed } : null
+				});
 			} catch (error) {
 				logger.error('Health check failed:', error);
 				sendJson(res, { ok: false, error: error instanceof Error ? error.message : String(error) }, 500);
@@ -1837,6 +1844,44 @@ function registerOrgRoutes(app: Express): void {
 			}
 
 			sendJson(res, { counters: result });
+		})
+	);
+
+	app.get(
+		'/api/bank/counter/check-availability',
+		wrap(async (req, res) => {
+			const branchId = String(req.query['branchId'] || '');
+			const counterNumberRaw = String(req.query['counterNumber'] || '');
+			const excludeCounterId = String(req.query['excludeCounterId'] || '');
+			if (!branchId || !counterNumberRaw) {
+				return sendJson(res, { error: 'Counter number and branch ID are required' }, 400);
+			}
+			const counterNumber = Number(counterNumberRaw);
+			if (!Number.isFinite(counterNumber)) {
+				return sendJson(res, { error: 'Invalid counter number' }, 400);
+			}
+			const { today, tomorrow } = todayRange();
+			const clauses = [
+				eq(counters.branchId, branchId),
+				eq(counters.counterNumber, counterNumber),
+				gte(counters.createdAt, today),
+				lt(counters.createdAt, tomorrow)
+			];
+			if (excludeCounterId) {
+				clauses.push(ne(counters.id, excludeCounterId));
+			}
+			const [existing] = await db
+				.select({ id: counters.id })
+				.top(1)
+				.from(counters)
+				.where(and(...clauses));
+			const available = !existing;
+			sendJson(res, {
+				available,
+				message: available
+					? `Counter ${counterNumber} is available`
+					: `Counter ${counterNumber} is already taken today`
+			});
 		})
 	);
 

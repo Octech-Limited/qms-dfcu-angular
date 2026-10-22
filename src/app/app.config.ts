@@ -4,12 +4,13 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 import { routes } from './app.routes';
 import { apiInterceptor } from './core/api.interceptor';
+import { monitorInterceptor } from './core/monitor.interceptor';
 
 export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
 		provideRouter(routes),
-		provideHttpClient(withFetch(), withInterceptors([apiInterceptor])),
+		provideHttpClient(withFetch(), withInterceptors([monitorInterceptor, apiInterceptor])),
 		provideClientHydration(withEventReplay())
 	]
 };
