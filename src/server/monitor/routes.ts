@@ -1,4 +1,4 @@
-import { timingSafeEqual } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
 import { getLive, getRings, getSnapshot, recordClientBatch, recordError } from './collector';
 import { DASHBOARD_HTML } from './dashboard';
@@ -10,6 +10,14 @@ import { logger } from '../logger';
 function normalizeToken(value: string): string {
 	return value.trim().replace(/^(["'])(.*)\1$/, '$2').trim();
 }
+
+/** Short one-way fingerprint so two values can be compared in logs without exposing either. */
+function fingerprint(value: string): string {
+	return createHash('sha256').update(value).digest('hex').slice(0, 8);
+}
+
+/** Version marker so you can tell from the logs which build is actually running. */
+const MONITOR_AUTH_BUILD = 'auth-v3-quote-strip';
 
 type TokenCheck = { ok: true } | { ok: false; reason: string };
 
@@ -46,8 +54,23 @@ function requireToken(req: Request, res: Response, next: NextFunction): void {
 	}
 	const check = checkToken(req);
 	if (!check.ok) {
-		logger.warn('Monitor token rejected', { ip: clientIp(req), host: req.headers['host'], reason: check.reason });
-		res.status(401).json({ error: 'Invalid monitor token', reason: check.reason, serverPid: process.pid });
+		const expected = normalizeToken(process.env['MONITOR_TOKEN'] ?? '');
+		const header = req.headers['authorization'];
+		const given = normalizeToken(typeof header === 'string' ? header.replace(/^Bearer\s+/i, '') : String(req.query['token'] ?? ''));
+		logger.warn('Monitor token rejected', {
+			build: MONITOR_AUTH_BUILD,
+			pid: process.pid,
+			pm2: process.env['pm_id'] ?? null,
+			ip: clientIp(req),
+			host: req.headers['host'],
+			reason: check.reason,
+			givenLen: given.length,
+			givenFp: fingerprint(given),
+			expectedLen: expected.length,
+			expectedFp: fingerprint(expected),
+			rawEnvLen: (process.env['MONITOR_TOKEN'] ?? '').length
+		});
+		res.status(401).json({ error: 'Invalid monitor token', reason: check.reason, serverPid: process.pid, build: MONITOR_AUTH_BUILD });
 		return;
 	}
 	res.setHeader('Cache-Control', 'no-store');

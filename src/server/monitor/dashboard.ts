@@ -42,7 +42,7 @@ var token=sessionStorage.getItem('qmsMonitorToken')||new URLSearchParams(locatio
 if(location.search.indexOf('token=')>=0)history.replaceState(null,'',location.pathname);
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function ms(n){n=+n||0;return n>=1000?(n/1000).toFixed(2)+'s':Math.round(n)+'ms'}
-function api(p){return fetch(p,{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(function(r){if(r.status===401){return r.json().catch(function(){return {}}).then(function(j){var e=new Error('401');e.reason=j.reason||'';throw e})}if(!r.ok)throw new Error(String(r.status));return r.json()})}
+function api(p){return fetch(p,{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(function(r){if(r.status===401){return r.json().catch(function(){return {}}).then(function(j){var e=new Error('401');e.reason=(j.reason||'')+(j.build?' [server build '+j.build+', pid '+j.serverPid+']':'');throw e})}if(!r.ok)throw new Error(String(r.status));return r.json()})}
 function table(cols,rows){if(!rows.length)return '<span class="mut">No data</span>';
  var h='<table><tr>'+cols.map(function(c){return '<th class="'+(c.n?'n':'')+'">'+esc(c.h)+'</th>'}).join('')+'</tr>';
  rows.forEach(function(r){h+='<tr>'+cols.map(function(c){var v=c.f(r);return '<td class="'+(c.n?'n ':'')+(c.w?'w':'')+'">'+(c.raw?v:esc(v))+'</td>'}).join('')+'</tr>'});return h+'</table>'}
