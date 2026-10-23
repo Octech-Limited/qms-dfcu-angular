@@ -6,15 +6,20 @@ import { computeInsights } from './insights';
 import { clientIp } from './requestMonitor';
 import { logger } from '../logger';
 
+/** Trim and drop one pair of surrounding quotes, which some env loaders (PM2, systemd, docker) keep literally. */
+function normalizeToken(value: string): string {
+	return value.trim().replace(/^(["'])(.*)\1$/, '$2').trim();
+}
+
 type TokenCheck = { ok: true } | { ok: false; reason: string };
 
 /** Checks the token and, on failure, says why without revealing the expected value or its length. */
 function checkToken(req: Request): TokenCheck {
-	const expected = process.env['MONITOR_TOKEN'] ?? '';
+	const expected = normalizeToken(process.env['MONITOR_TOKEN'] ?? '');
 	const header = req.headers['authorization'];
 	const hasBearer = typeof header === 'string' && /^Bearer\s/i.test(header);
-	const fromHeader = hasBearer ? (header as string).replace(/^Bearer\s+/i, '').trim() : '';
-	const fromQuery = String(req.query['token'] ?? '').trim();
+	const fromHeader = hasBearer ? normalizeToken((header as string).replace(/^Bearer\s+/i, '')) : '';
+	const fromQuery = normalizeToken(String(req.query['token'] ?? ''));
 	const given = fromHeader || fromQuery;
 	if (!given) {
 		return {
@@ -35,7 +40,7 @@ function checkToken(req: Request): TokenCheck {
 }
 
 function requireToken(req: Request, res: Response, next: NextFunction): void {
-	if (!process.env['MONITOR_TOKEN']) {
+	if (!normalizeToken(process.env['MONITOR_TOKEN'] ?? '')) {
 		res.status(404).json({ error: 'Monitor read access is disabled. Set MONITOR_TOKEN to enable it.' });
 		return;
 	}
