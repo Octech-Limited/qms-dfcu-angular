@@ -12,7 +12,7 @@ const ACTIVITY_EVENTS = [
 ] as const;
 
 /**
- * Client-side idle session killer for dashboard and serving only.
+ * Client-side idle session killer for the dashboard only.
  * Kiosk / hall must not use this — their sessions stay for ~1 month.
  */
 @Injectable({ providedIn: 'root' })

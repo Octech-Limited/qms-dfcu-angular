@@ -4,15 +4,34 @@ import { getLive, getRings, getSnapshot, recordClientBatch, recordError } from '
 import { DASHBOARD_HTML } from './dashboard';
 import { computeInsights } from './insights';
 import { clientIp } from './requestMonitor';
+import { logger } from '../logger';
 
-function tokenOk(req: Request): boolean {
-	const expected = process.env['MONITOR_TOKEN'];
-	if (!expected) return false;
+type TokenCheck = { ok: true } | { ok: false; reason: string };
+
+/** Checks the token and, on failure, says why without revealing the expected value or its length. */
+function checkToken(req: Request): TokenCheck {
+	const expected = process.env['MONITOR_TOKEN'] ?? '';
 	const header = req.headers['authorization'];
-	const given = (typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : String(req.query['token'] ?? '')).trim();
+	const hasBearer = typeof header === 'string' && /^Bearer\s/i.test(header);
+	const fromHeader = hasBearer ? (header as string).replace(/^Bearer\s+/i, '').trim() : '';
+	const fromQuery = String(req.query['token'] ?? '').trim();
+	const given = fromHeader || fromQuery;
+	if (!given) {
+		return {
+			ok: false,
+			reason: typeof header === 'string'
+				? `Authorization header arrived with scheme "${header.split(' ')[0].slice(0, 12)}" but no Bearer token (a proxy may be rewriting it)`
+				: 'No token received: no Authorization header and no ?token= parameter (a proxy may be stripping the header)'
+		};
+	}
 	const a = Buffer.from(given);
 	const b = Buffer.from(expected);
-	return a.length === b.length && timingSafeEqual(a, b);
+	if (a.length === b.length && timingSafeEqual(a, b)) return { ok: true };
+	return {
+		ok: false,
+		reason: `Token received via ${fromHeader ? 'Authorization header' : '?token= parameter'} (${a.length} chars) does not match this server's MONITOR_TOKEN` +
+			(/\s/.test(given) ? '; it contains whitespace' : '') + (/["']/.test(given) ? '; it contains quote characters' : '')
+	};
 }
 
 function requireToken(req: Request, res: Response, next: NextFunction): void {
@@ -20,8 +39,10 @@ function requireToken(req: Request, res: Response, next: NextFunction): void {
 		res.status(404).json({ error: 'Monitor read access is disabled. Set MONITOR_TOKEN to enable it.' });
 		return;
 	}
-	if (!tokenOk(req)) {
-		res.status(401).json({ error: 'Invalid monitor token' });
+	const check = checkToken(req);
+	if (!check.ok) {
+		logger.warn('Monitor token rejected', { ip: clientIp(req), host: req.headers['host'], reason: check.reason });
+		res.status(401).json({ error: 'Invalid monitor token', reason: check.reason, serverPid: process.pid });
 		return;
 	}
 	res.setHeader('Cache-Control', 'no-store');

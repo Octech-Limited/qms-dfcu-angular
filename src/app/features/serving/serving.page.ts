@@ -2,7 +2,6 @@ import { Component, OnDestroy, OnInit, PLATFORM_ID, inject } from '@angular/core
 import { isPlatformBrowser } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LogOut, LucideAngularModule, Settings2 } from 'lucide-angular';
-import { InactivityTimeoutService } from '../../core/inactivity-timeout.service';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import {
@@ -256,7 +255,6 @@ export class ServingPage implements OnInit, OnDestroy {
   readonly desk = inject(ServingDeskService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(ToastService);
-  private readonly inactivity = inject(InactivityTimeoutService);
   private readonly platform = inject(PLATFORM_ID);
 
   readonly icons = { LogOut, Settings2 };
@@ -276,10 +274,6 @@ export class ServingPage implements OnInit, OnDestroy {
 
   async ngOnInit() {
     if (!isPlatformBrowser(this.platform)) return;
-    this.inactivity.start({
-      timeoutMinutes: 5,
-      onExpire: () => this.logoutDueToInactivity(),
-    });
     await this.desk.bootstrap();
     if (!this.openQueueId && this.desk.queueItems().length) {
       this.openQueueId = this.desk.queueItems()[0].id;
@@ -287,7 +281,6 @@ export class ServingPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.inactivity.stop();
     this.desk.ngOnDestroy();
   }
 
@@ -312,18 +305,7 @@ export class ServingPage implements OnInit, OnDestroy {
     }
   }
 
-  async logoutDueToInactivity() {
-    this.toast.error('Session expired due to inactivity. Redirecting to login...');
-    try {
-      await this.session.logout();
-    } catch {
-      /* still redirect */
-    }
-    location.href = '/tellerLogin';
-  }
-
   async logout() {
-    this.inactivity.stop();
     await this.session.logout();
     location.href = '/tellerLogin';
   }

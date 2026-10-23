@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ArrowLeft, LucideAngularModule, LogOut } from 'lucide-angular';
 import { ApiService } from '../../core/api.service';
-import { InactivityTimeoutService } from '../../core/inactivity-timeout.service';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { eatCalendarDate } from '../../core/timezone';
@@ -132,7 +131,6 @@ export class ServingReportsPage implements OnInit, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(ToastService);
-  private readonly inactivity = inject(InactivityTimeoutService);
   private readonly platform = inject(PLATFORM_ID);
 
   readonly icons = { ArrowLeft, LogOut };
@@ -147,15 +145,10 @@ export class ServingReportsPage implements OnInit, OnDestroy {
 
   async ngOnInit() {
     if (!isPlatformBrowser(this.platform)) return;
-    this.inactivity.start({
-      timeoutMinutes: 5,
-      onExpire: () => this.logoutDueToInactivity(),
-    });
     await this.loadReports(this.date());
   }
 
   ngOnDestroy() {
-    this.inactivity.stop();
   }
 
   async onDateChange(next: string) {
@@ -186,18 +179,7 @@ export class ServingReportsPage implements OnInit, OnDestroy {
     }
   }
 
-  async logoutDueToInactivity() {
-    this.toast.error('Session expired due to inactivity. Redirecting to login...');
-    try {
-      await this.session.logout();
-    } catch {
-      /* still redirect */
-    }
-    location.href = '/tellerLogin';
-  }
-
   async logout() {
-    this.inactivity.stop();
     await this.session.logout();
     location.href = '/tellerLogin';
   }

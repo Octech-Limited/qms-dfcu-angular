@@ -42,7 +42,7 @@ var token=sessionStorage.getItem('qmsMonitorToken')||new URLSearchParams(locatio
 if(location.search.indexOf('token=')>=0)history.replaceState(null,'',location.pathname);
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function ms(n){n=+n||0;return n>=1000?(n/1000).toFixed(2)+'s':Math.round(n)+'ms'}
-function api(p){return fetch(p,{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(function(r){if(r.status===401){throw new Error('401')}if(!r.ok)throw new Error(String(r.status));return r.json()})}
+function api(p){return fetch(p,{headers:{Authorization:'Bearer '+token},cache:'no-store'}).then(function(r){if(r.status===401){return r.json().catch(function(){return {}}).then(function(j){var e=new Error('401');e.reason=j.reason||'';throw e})}if(!r.ok)throw new Error(String(r.status));return r.json()})}
 function table(cols,rows){if(!rows.length)return '<span class="mut">No data</span>';
  var h='<table><tr>'+cols.map(function(c){return '<th class="'+(c.n?'n':'')+'">'+esc(c.h)+'</th>'}).join('')+'</tr>';
  rows.forEach(function(r){h+='<tr>'+cols.map(function(c){var v=c.f(r);return '<td class="'+(c.n?'n ':'')+(c.w?'w':'')+'">'+(c.raw?v:esc(v))+'</td>'}).join('')+'</tr>'});return h+'</table>'}
@@ -80,7 +80,7 @@ function tick(){
  if(!token){$('auth').hidden=false;return}
  var w=$('win').value;
  Promise.all([api('/api/monitor/summary?window='+w),api('/api/monitor/recent')]).then(function(r){$('err').textContent='';$('auth').hidden=true;render(r[0],r[1])}).catch(function(e){
-  if(e.message==='401'){sessionStorage.removeItem('qmsMonitorToken');token='';$('auth').hidden=false;$('err').textContent='Invalid token'}else{$('stamp').textContent=' cannot reach server ('+e.message+') - retrying'}})}
+  if(e.message==='401'){sessionStorage.removeItem('qmsMonitorToken');token='';$('auth').hidden=false;$('err').textContent='Invalid token'+(e.reason?' - '+e.reason:'')}else{$('stamp').textContent=' cannot reach server ('+e.message+') - retrying'}})}
 $('go').onclick=function(){token=$('tok').value.trim();sessionStorage.setItem('qmsMonitorToken',token);$('err').textContent='';tick()};
 $('win').onchange=tick;
 if(token)sessionStorage.setItem('qmsMonitorToken',token);
