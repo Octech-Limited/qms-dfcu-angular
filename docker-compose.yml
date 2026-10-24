@@ -64,8 +64,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
+      - app-uploads:/app/uploads
+      - app-logs:/app/logs
 
 volumes:
   mssql-data:
+  app-uploads:
+  app-logs:
