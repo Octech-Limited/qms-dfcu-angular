@@ -1,0 +1,13 @@
+node_modules
+dist
+.angular
+.git
+.env
+.env.*
+!.env.example
+!.env.docker.example
+logs
+uploads
+docs
+Dockerfile
+docker-compose.yml

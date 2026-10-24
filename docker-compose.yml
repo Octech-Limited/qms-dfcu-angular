@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?set MSSQL_SA_PASSWORD in .env}
+    ports:
+      - "1460:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  db-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+    entrypoint:
+      - /bin/bash
+      - -c
+      - >-
+        /opt/mssql-tools18/bin/sqlcmd -C -S db -U sa -P "$$MSSQL_SA_PASSWORD"
+        -Q "IF DB_ID('qms') IS NULL CREATE DATABASE qms"
+    restart: "no"
+
+  migrate:
+    build:
+      context: .
+      target: migrate
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: sqlserver://db:1433;database=qms;user=sa;password=${MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    env_file: .env
+    environment:
+      PORT: "4080"
+      HOST: 0.0.0.0
+      DATABASE_URL: sqlserver://db:1433;database=qms;user=sa;password=${MSSQL_SA_PASSWORD};encrypt=true;trustServerCertificate=true
+      NG_ALLOWED_HOSTS: ${NG_ALLOWED_HOSTS:-*}
+      ORIGIN: ${ORIGIN:-http://localhost:4080}
+      APP_URL: ${APP_URL:-http://localhost:4080}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "4080:4080"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+
+volumes:
+  mssql-data:
