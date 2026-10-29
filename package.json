@@ -78,5 +78,12 @@
     },
     "source-map-js": "1.2.2",
     "@modelcontextprotocol/sdk": "1.32.1"
+  },
+  "allowScripts": {
+    "@parcel/watcher@2.6.0": true,
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.1": true,
+    "lmdb@3.5.1": true,
+    "msgpackr-extract@3.0.4": true
   }
 }
