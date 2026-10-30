@@ -1130,10 +1130,12 @@ async function main() {
 		if (ticketsColumn[0].len == null) {
 			throw new Error('counters.tickets is already gone. This database looks migrated.');
 		}
+		console.log('Reading counters...');
 		const counters = await query(
 			pool,
 			`SELECT id, userId, counterNumber, tickets, available, createdAt FROM dbo.counters`
 		);
+		console.log(`  ${counters.length} counters. Reading banktickets...`);
 		const tickets = await query(
 			pool,
 			`SELECT id, ticketNo, ticketStatus, aggregateStatus, counterId, currentCounterId,
@@ -1142,10 +1144,12 @@ async function main() {
 			        callAgain, pendingRedirectAcceptance, queueId, subItemId, subSubItemId
 			 FROM dbo.banktickets`
 		);
+		console.log(`  ${tickets.length} tickets. Building plan...`);
 		const visits = loadVisits(counters);
 		const notes = [];
 		const plans = tickets.map((ticket) => buildPlan(ticket, visits.get(ticket.id), notes));
-		const unknownVisits = [...visits.keys()].filter((id) => !plans.some((plan) => plan.id === id));
+		const planIds = new Set(plans.map((plan) => plan.id));
+		const unknownVisits = [...visits.keys()].filter((id) => !planIds.has(id));
 		if (unknownVisits.length) {
 			throw new Error(`Counter JSON references ${unknownVisits.length} tickets that are not in banktickets`);
 		}
