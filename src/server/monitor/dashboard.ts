@@ -61,7 +61,7 @@ function chart(tl){var svg=$('chart');if(!tl.length){svg.innerHTML='';return}
  $('legend').textContent='Bars: requests/min (max '+mx+'). Line: p95 latency (max '+ms(mp)+'). Red strip on top: requests were queued for a DB connection. Amber strip at bottom: 5xx errors.'}
 function render(d,rec){
  var s=d.snapshot,t=s.totals,l=d.live,p=l.pool;
- $('meta').textContent='pid '+l.pid+(l.pm2!=null?' (pm2 '+l.pm2+')':'')+' / up '+Math.round(l.uptimeSec/60)+' min / node '+l.node;
+ $('meta').textContent='pid '+l.pid+(l.pm2!=null?' (pm2 '+l.pm2+')':'')+(l.workers&&l.workers.length>1?' / '+l.workers.length+' workers (pids '+l.workers.map(function(w){return w.pid}).join(', ')+')':'')+' / up '+Math.round(l.uptimeSec/60)+' min / node '+l.node;
  $('stamp').textContent=' updated '+new Date().toLocaleTimeString();
  $('insights').innerHTML=d.insights.map(function(i){return '<div class="ins '+i.severity+'"><b>'+esc(i.title)+'</b><span>'+esc(i.detail)+'</span>'+(i.advice?'<div class="adv"><small>Suggestion: '+esc(i.advice)+'</small></div>':'')+'</div>'}).join('')||'<span class="mut">No findings</span>';
  $('kpis').innerHTML=kpi('requests',t.count)+kpi('req/s',t.rps.toFixed(1))+kpi('p50',ms(t.p50))+kpi('p95',ms(t.p95),t.p95>1000)+kpi('p99',ms(t.p99),t.p99>3000)+kpi('avg DB time',ms(t.avgDbMs))+kpi('avg pool wait',ms(t.avgAcquireMs),t.avgAcquireMs>50)+kpi('5xx rate',(t.errorRate*100).toFixed(2)+'%',t.errorRate>0.01)+kpi('aborted',t.aborted)+kpi('in flight now',l.inflight)+kpi('pool now',p?(p.borrowed+'/'+p.max+' used, '+p.pending+' waiting'):'n/a',p&&p.pending>0)+kpi('event-loop lag max',ms(s.lag.maxMs),s.lag.maxMs>200);

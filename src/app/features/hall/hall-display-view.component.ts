@@ -1,5 +1,6 @@
 import {
   Component,
+  computed,
   Input,
   OnChanges,
   OnDestroy,
@@ -28,6 +29,7 @@ import { ApiService } from '../../core/api.service';
 import { XTwitter, socialPlatformIcon } from '../../core/social-icons';
 import { eatCalendarDate, getEatParts } from '../../core/timezone';
 import { ToastService } from '../../core/toast.service';
+import { RealtimeService, type RealtimeEvent } from '../../core/realtime.service';
 import { getCountryByCode } from '../dashboard/countries';
 import { AdCarouselComponent } from './ad-carousel.component';
 
@@ -191,17 +193,32 @@ function buildAudioFiles(
         </div>
         <div class="relative flex items-center gap-4">
           @if (!preview) {
-            <button
-              type="button"
-              class="rounded-md p-2 text-primary-foreground hover:bg-primary-foreground/10"
-              (click)="toggleMute()"
-              [attr.aria-label]="muted() ? 'Unmute' : 'Mute'"
-            >
+            <div class="flex items-center gap-2 text-primary-foreground">
+              @if (soundOn() && soundLocked()) {
+                <span class="animate-pulse text-xs font-medium">Tap anywhere to activate sound</span>
+              }
               <lucide-angular
-                [img]="muted() ? icons.VolumeX : icons.Volume2"
+                [img]="soundOn() ? icons.Volume2 : icons.VolumeX"
                 class="size-6"
               ></lucide-angular>
-            </button>
+              <button
+                type="button"
+                role="switch"
+                class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border border-primary-foreground/40 transition-colors"
+                [class.bg-white]="soundOn()"
+                [class.bg-primary-foreground/20]="!soundOn()"
+                [attr.aria-checked]="soundOn()"
+                aria-label="Announcement sound"
+                (click)="toggleSound()"
+              >
+                <span
+                  class="pointer-events-none absolute top-0.5 left-0.5 size-5 rounded-full shadow transition-transform"
+                  [class.translate-x-5]="soundOn()"
+                  [class.bg-primary]="soundOn()"
+                  [class.bg-white]="!soundOn()"
+                ></span>
+              </button>
+            </div>
           }
           <button
             type="button"
@@ -496,6 +513,8 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
   private readonly api = inject(ApiService);
   private readonly toast = inject(ToastService);
   private readonly platform = inject(PLATFORM_ID);
+  private readonly realtime = inject(RealtimeService);
+  private unsubscribeRealtime?: () => void;
   private static nextStyleId = 0;
   private readonly styleId = `hall-layout-css-${HallDisplayViewComponent.nextStyleId++}`;
 
@@ -530,7 +549,11 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
   readonly socialIndex = signal(0);
   readonly settings = signal<Settings | null>(null);
   readonly hasQms = signal(true);
-  readonly muted = signal(true);
+  /** The user's choice, kept in localStorage so a refresh (e.g. after a network blip) does not reset it. */
+  readonly soundOn = signal(false);
+  /** True while the browser blocks sound until the next click/tap/key press (autoplay policy). */
+  readonly soundLocked = signal(false);
+  readonly muted = computed(() => !this.soundOn());
   readonly menuOpen = signal(false);
   readonly enableVideoAudio = signal(false);
   readonly isAnnouncing = signal(false);
@@ -640,9 +663,91 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
     return socialPlatformIcon(platform);
   }
 
-  toggleMute() {
-    this.muted.update((v) => !v);
+  toggleSound() {
+    const next = !this.soundOn();
+    this.soundOn.set(next);
+    this.saveSoundPreference(next);
+    if (next) {
+      // This click is a user gesture, so the browser lets sound start now.
+      this.initializeAudioContext();
+      this.soundLocked.set(false);
+      this.checkSoundUnlocked();
+    } else {
+      this.currentAudio?.pause();
+      this.soundLocked.set(false);
+    }
+  }
+
+  private static readonly SOUND_KEY = 'qms.hall.soundOn';
+
+  private loadSoundPreference(): boolean {
+    try {
+      return localStorage.getItem(HallDisplayViewComponent.SOUND_KEY) === '1';
+    } catch {
+      return false; // storage blocked (private window etc.): fall back to off
+    }
+  }
+
+  private saveSoundPreference(on: boolean) {
+    try {
+      localStorage.setItem(HallDisplayViewComponent.SOUND_KEY, on ? '1' : '0');
+    } catch {
+      /* not persisted, still works for this page load */
+    }
+  }
+
+  // Browsers differ in which input counts as a "real" interaction for audio, so listen for all the usual ones.
+  private readonly unlockEvents = ['pointerdown', 'pointerup', 'mousedown', 'click', 'keydown', 'touchstart', 'touchend'] as const;
+  private readonly unlockHandler = () => {
+    if (!this.soundOn()) return;
     this.initializeAudioContext();
+    this.checkSoundUnlocked();
+  };
+
+  /** After a refresh the page has no user gesture yet. Resume on the first one, from anywhere on the screen. */
+  private restoreSound() {
+    if (this.preview || !this.loadSoundPreference()) return;
+    this.soundOn.set(true);
+    this.initializeAudioContext();
+    this.checkSoundUnlocked();
+    this.armUnlock();
+  }
+
+  private armUnlock() {
+    for (const e of this.unlockEvents) document.addEventListener(e, this.unlockHandler, { passive: true });
+  }
+
+  private soundWatch?: ReturnType<typeof setInterval>;
+
+  /**
+   * Decides whether the browser is really blocking sound. A just-created audio engine is "suspended" for a
+   * moment even when sound is allowed (longer on slow TVs), so only claim "blocked" after a grace period,
+   * and clear the hint the moment the engine runs.
+   */
+  private checkSoundUnlocked() {
+    const ctx = this.audioContext;
+    if (!ctx) return;
+    if (this.soundWatch) clearInterval(this.soundWatch);
+    const evaluate = () => {
+      if (ctx.state !== 'running') return false;
+      this.soundLocked.set(false);
+      for (const e of this.unlockEvents) document.removeEventListener(e, this.unlockHandler);
+      if (this.soundWatch) clearInterval(this.soundWatch);
+      this.soundWatch = undefined;
+      return true;
+    };
+    if (evaluate()) return;
+    ctx.onstatechange = () => void evaluate();
+    let ticks = 0;
+    this.soundWatch = setInterval(() => {
+      if (evaluate()) return;
+      ticks++;
+      if (ticks === 4) this.soundLocked.set(this.soundOn()); // ~2s and still not running: really blocked
+      if (ticks >= 20 && this.soundWatch) {
+        clearInterval(this.soundWatch); // the next tap re-checks
+        this.soundWatch = undefined;
+      }
+    }, 500);
   }
 
   initializeAudioContext() {
@@ -667,14 +772,18 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
     if (!isPlatformBrowser(this.platform)) return;
     this.tickClock();
     this.clockTimer = setInterval(() => this.tickClock(), 1000);
+    this.restoreSound();
     if (!this.preview) await this.preloadAudio();
+    // Subscribe before the first load so an event that lands while it runs is not lost.
+    this.bindRealtime();
     await Promise.all([this.reloadAll(), this.loadMarquee()]);
-    this.pollTimer = setInterval(() => void this.reloadAll(), 3000);
+    // Safety net only: server events drive updates; this catches anything missed.
+    this.pollTimer = setInterval(() => void this.reloadAll(), 30_000);
     this.socialTimer = setInterval(() => {
       const n = this.socials().length;
       if (n > 1) this.socialIndex.update((i) => (i + 1) % n);
     }, 5000);
-    this.marqueePoll = setInterval(() => void this.loadMarquee(), 60000);
+    this.marqueePoll = setInterval(() => void this.loadMarquee(), 300_000);
     this.scheduleMarqueeRotate();
     if (!this.preview) {
       this.announceTimer = setInterval(() => void this.processQueue(), 1000);
@@ -690,12 +799,38 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
         currentAnnouncementCount: 0,
         isProcessing: false,
       };
+      this.bindRealtime();
       await this.reloadAll();
     }
   }
 
+  private bindRealtime() {
+    this.unsubscribeRealtime?.();
+    if (!this.branchId) return;
+    this.unsubscribeRealtime = this.realtime.subscribe(
+      ['tickets', 'announcements-audio', 'content', 'resync'],
+      (events) => this.onRealtime(events),
+      this.branchId,
+    );
+  }
+
+  private onRealtime(events: RealtimeEvent[]) {
+    const resync = events.some((e) => e.type === 'resync');
+    const tickets = resync || events.some((e) => e.type === 'tickets' || e.type === 'announcements-audio');
+    const content = resync || events.some((e) => e.type === 'content' && e.scope !== 'marquee' && e.scope !== 'ads');
+    const marquee = resync || events.some((e) => e.type === 'content' && e.scope === 'marquee');
+    if (tickets && content) void this.reloadAll();
+    else if (tickets) void this.reloadAll('tickets');
+    else if (content) void this.reloadAll('content');
+    if (marquee) void this.loadMarquee();
+  }
+
   ngOnDestroy() {
     removeDynamicCss(this.styleId);
+    for (const e of this.unlockEvents) document.removeEventListener(e, this.unlockHandler);
+    if (this.soundWatch) clearInterval(this.soundWatch);
+    this.unsubscribeRealtime?.();
+    if (this.reloadRetryTimer) clearTimeout(this.reloadRetryTimer);
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.clockTimer) clearInterval(this.clockTimer);
     if (this.announceTimer) clearInterval(this.announceTimer);
@@ -779,40 +914,60 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  private async reloadAll() {
+  private async reloadAll(scope: 'all' | 'tickets' | 'content' = 'all') {
     if (!this.branchId) return;
     const today = eatCalendarDate();
+    const wantTickets = scope !== 'content';
+    const wantContent = scope !== 'tickets';
     try {
-      const [branch, serving, onHold, redirected, upcoming, rates, settings, socials] =
-        await Promise.all([
-          this.api.get<{ kioskUsername?: string | null; hallDisplayUsername?: string | null }>(
-            `/api/bank/branches/${this.branchId}`,
-          ),
-          this.api.get<Ticket[]>('/api/bank/ticket', {
-            status: 'Serving',
-            branchId: this.branchId,
-            date: today,
-          }),
-          this.api.get<Ticket[]>('/api/bank/ticket', {
-            status: 'Hold',
-            branchId: this.branchId,
-            date: today,
-          }),
-          this.api.get<Ticket[]>('/api/bank/ticket', {
-            status: 'Redirected',
-            branchId: this.branchId,
-            date: today,
-          }),
-          this.api.get<Ticket[]>('/api/bank/ticket', {
-            status: 'Not Served',
-            branchId: this.branchId,
-            date: today,
-          }),
-          this.api.get<Rate[]>('/api/bank/exchange-rates'),
-          this.api.get<Settings>('/api/bank/settings'),
-          this.api.get<Social[]>('/api/bank/social-media'),
-        ]);
-      this.hasQms.set(!!branch?.kioskUsername);
+      const [ticketData, contentData] = await Promise.all([
+        wantTickets
+          ? Promise.all([
+              this.api.get<Ticket[]>('/api/bank/ticket', {
+                status: 'Serving',
+                branchId: this.branchId,
+                date: today,
+              }),
+              this.api.get<Ticket[]>('/api/bank/ticket', {
+                status: 'Hold',
+                branchId: this.branchId,
+                date: today,
+              }),
+              this.api.get<Ticket[]>('/api/bank/ticket', {
+                status: 'Redirected',
+                branchId: this.branchId,
+                date: today,
+              }),
+              this.api.get<Ticket[]>('/api/bank/ticket', {
+                status: 'Not Served',
+                branchId: this.branchId,
+                date: today,
+              }),
+            ])
+          : null,
+        wantContent
+          ? Promise.all([
+              this.api.get<{ kioskUsername?: string | null; hallDisplayUsername?: string | null }>(
+                `/api/bank/branches/${this.branchId}`,
+              ),
+              this.api.get<Rate[]>('/api/bank/exchange-rates'),
+              this.api.get<Settings>('/api/bank/settings'),
+              this.api.get<Social[]>('/api/bank/social-media'),
+            ])
+          : null,
+      ]);
+      if (contentData) {
+        const [branch, rates, settings, socials] = contentData;
+        this.hasQms.set(!!branch?.kioskUsername);
+        this.rates.set(rates || []);
+        this.settings.set(settings);
+        this.socials.set(socials || []);
+      }
+      if (!ticketData) {
+        this.reloadRetries = 0;
+        return;
+      }
+      const [serving, onHold, redirected, upcoming] = ticketData;
       this.serving.set(serving || []);
       this.upcoming.set(
         [...(upcoming || [])].sort((a, b) => {
@@ -821,9 +976,6 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
           return da - db;
         }),
       );
-      this.rates.set(rates || []);
-      this.settings.set(settings);
-      this.socials.set(socials || []);
 
       if (!this.preview) {
         for (const ticket of serving || []) {
@@ -860,9 +1012,23 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
           if (!liveIds.has(id)) this.previousStates.delete(id);
         }
       }
+      this.reloadRetries = 0;
     } catch {
-      /* keep last good state */
+      /* keep last good state, but retry soon: with events there is no 3s poll to repair a failed refresh */
+      this.scheduleReloadRetry(scope);
     }
+  }
+
+  private reloadRetryTimer?: ReturnType<typeof setTimeout>;
+  private reloadRetries = 0;
+
+  private scheduleReloadRetry(scope: 'all' | 'tickets' | 'content') {
+    if (this.reloadRetryTimer || this.reloadRetries >= 6) return;
+    this.reloadRetries++;
+    this.reloadRetryTimer = setTimeout(() => {
+      this.reloadRetryTimer = undefined;
+      void this.reloadAll(scope);
+    }, Math.min(1000 * this.reloadRetries, 5000));
   }
 
   private async maybeQueueAnnouncement(ticket: Ticket) {
@@ -1188,10 +1354,20 @@ export class HallDisplayViewComponent implements OnInit, OnChanges, OnDestroy {
         this.currentAudio = null;
         reject(new Error(`Failed to play ${language}/${fileName}`));
       };
-      void audio.play().catch((e) => {
-        this.currentAudio = null;
-        reject(e);
-      });
+      audio.play().then(
+        () => {
+          // Playing worked, so sound is not blocked, whatever an earlier attempt said.
+          if (this.soundLocked()) this.soundLocked.set(false);
+        },
+        (e) => {
+          this.currentAudio = null;
+          if ((e as DOMException)?.name === 'NotAllowedError') {
+            this.soundLocked.set(true);
+            this.armUnlock();
+          }
+          reject(e);
+        }
+      );
     });
   }
 }

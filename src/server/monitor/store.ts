@@ -215,6 +215,83 @@ function round1(n: number): number {
 	return Math.round(n * 10) / 10;
 }
 
+/**
+ * Combines buckets covering the same minute (one per cluster worker) into one. Counters add up,
+ * samples are pooled, and per-process gauges are combined so the result reads as "the whole app":
+ * pool figures and in-flight are summed (total capacity / total concurrency), CPU, event-loop lag
+ * and memory take the worst worker.
+ */
+export function mergeBuckets(list: Bucket[]): Bucket {
+	if (list.length === 1) return list[0];
+	const out = newBucket(list[0].t);
+	let poolSamples = 0;
+	let availableMin = 0;
+	for (const b of list) {
+		out.n += b.n;
+		out.err += b.err;
+		out.aborted += b.aborted;
+		out.sumMs += b.sumMs;
+		out.sumDb += b.sumDb;
+		out.sumAcq += b.sumAcq;
+		out.inflightMax += b.inflightMax;
+		for (const v of b.samples) reservoir(out.samples, v, SAMPLE_CAP * 2, out.samples.length + 1);
+		for (const [k, v] of Object.entries(b.routes)) {
+			const r = entry(out.routes, k, () => ({ n: 0, err: 0, sumMs: 0, sumDb: 0, maxMs: 0, samples: [] as number[] }));
+			r.n += v.n; r.err += v.err; r.sumMs += v.sumMs; r.sumDb += v.sumDb; r.maxMs = Math.max(r.maxMs, v.maxMs);
+			r.samples.push(...v.samples);
+		}
+		for (const [k, v] of Object.entries(b.sources)) {
+			const x = entry(out.sources, k, () => ({ n: 0, err: 0, sumMs: 0 }));
+			x.n += v.n; x.err += v.err; x.sumMs += v.sumMs;
+		}
+		for (const [k, v] of Object.entries(b.pairs)) out.pairs[k] = (out.pairs[k] ?? 0) + v;
+		for (const [k, v] of Object.entries(b.queries)) {
+			const q = entry(out.queries, k, () => ({ n: 0, err: 0, sumMs: 0, maxMs: 0, samples: [] as number[] }));
+			q.n += v.n; q.err += v.err; q.sumMs += v.sumMs; q.maxMs = Math.max(q.maxMs, v.maxMs);
+			q.samples.push(...v.samples);
+		}
+		for (const [k, v] of Object.entries(b.client)) {
+			const c = entry(out.client, k, () => ({ n: 0, fail: 0, sumMs: 0, samples: [] as number[] }));
+			c.n += v.n; c.fail += v.fail; c.sumMs += v.sumMs;
+			c.samples.push(...v.samples);
+		}
+		for (const [k, v] of Object.entries(b.errs)) {
+			const e = entry(out.errs, k, () => ({ ...v, n: 0, idleDrops: 0, lastT: 0 }));
+			e.n += v.n; e.idleDrops += v.idleDrops;
+			if (v.lastT >= e.lastT) { e.lastT = v.lastT; e.msg = v.msg; }
+		}
+		for (const [k, v] of Object.entries(b.jobs)) {
+			const j = entry(out.jobs, k, () => ({ n: 0, err: 0, sumMs: 0, maxMs: 0 }));
+			j.n += v.n; j.err += v.err; j.sumMs += v.sumMs; j.maxMs = Math.max(j.maxMs, v.maxMs);
+		}
+		if (b.pool.samples > 0) {
+			out.pool.size += b.pool.size;
+			out.pool.max += b.pool.max;
+			out.pool.borrowedMax += b.pool.borrowedMax;
+			out.pool.pendingMax += b.pool.pendingMax;
+			availableMin += b.pool.availableMin;
+			poolSamples += b.pool.samples;
+		}
+		out.lagMaxMs = Math.max(out.lagMaxMs, b.lagMaxMs);
+		out.rssMb = Math.max(out.rssMb, b.rssMb);
+		out.cpuPct = Math.max(out.cpuPct, b.cpuPct);
+	}
+	out.pool.samples = poolSamples;
+	out.pool.availableMin = poolSamples > 0 ? availableMin : Number.MAX_SAFE_INTEGER;
+	return out;
+}
+
+/** Groups buckets by minute and merges each group; output is sorted oldest first. */
+export function mergeByMinute(buckets: Bucket[]): Bucket[] {
+	const byMinute = new Map<number, Bucket[]>();
+	for (const b of buckets) {
+		const group = byMinute.get(b.t);
+		if (group) group.push(b);
+		else byMinute.set(b.t, [b]);
+	}
+	return [...byMinute.entries()].sort((a, b) => a[0] - b[0]).map(([, group]) => mergeBuckets(group));
+}
+
 export function percentile(sorted: number[], p: number): number {
 	if (!sorted.length) return 0;
 	const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));

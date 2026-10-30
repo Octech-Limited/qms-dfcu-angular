@@ -236,6 +236,24 @@ export function getLive() {
 	return { uptimeSec: Math.round((Date.now() - startedAt) / 1000), inflight, pool, pid: process.pid, node: process.version, pm2: process.env['pm_id'] ?? null };
 }
 
+/** Everything one worker knows, trimmed for sending to the worker that serves the dashboard. */
+export interface LocalReport {
+	slot: string | null;
+	buckets: Bucket[];
+	rings: { errors: RingEvent[]; slowRequests: RingEvent[]; slowQueries: RingEvent[] };
+	live: ReturnType<typeof getLive>;
+}
+
+export function getLocalReport(windowMin: number): LocalReport {
+	const from = Date.now() - windowMin * MINUTE;
+	return {
+		slot: process.env['QMS_WORKER_ID'] ?? null,
+		buckets: buckets.filter((b) => b.t + MINUTE > from).map(compactBucket),
+		rings: getRings(),
+		live: getLive()
+	};
+}
+
 // --------------------------------------------------------------------------
 // Periodic sampling (pool, event loop, memory, CPU)
 // --------------------------------------------------------------------------

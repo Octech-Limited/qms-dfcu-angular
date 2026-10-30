@@ -4,7 +4,9 @@ import pino, { type Logger as PinoLogger } from 'pino';
 import SonicBoom from 'sonic-boom';
 
 const LOGS_DIR = path.join(process.cwd(), 'logs');
-const APP_LOG = path.join(LOGS_DIR, 'app.log');
+// Cluster workers each write their own file (app.w1.log, ...) so rotation never races between processes.
+const WORKER_SUFFIX = process.env['QMS_WORKER_ID'] ? `.w${process.env['QMS_WORKER_ID']}` : '';
+const APP_LOG = path.join(LOGS_DIR, `app${WORKER_SUFFIX}.log`);
 
 function localDateString(date: Date = new Date()): string {
 	const year = date.getFullYear();
@@ -14,7 +16,7 @@ function localDateString(date: Date = new Date()): string {
 }
 
 function archivePathForDate(dateStr: string): string {
-	return path.join(LOGS_DIR, `app.${dateStr}.log`);
+	return path.join(LOGS_DIR, `app${WORKER_SUFFIX}.${dateStr}.log`);
 }
 
 /** Daily file rotation: writes to logs/app.log, archives as logs/app.YYYY-MM-DD.log. */

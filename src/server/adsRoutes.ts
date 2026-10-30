@@ -9,6 +9,7 @@ import { ads, adBranches, branches } from './db/schema';
 import { requireAnySession, requireAuth, sendAuthError, sendJson } from './auth';
 import { purgeAdsExpiredOver30Days } from './adsCleanup';
 import { logger } from './logger';
+import { emitOnSuccess } from './realtime/emit';
 import { eatDayRange, eatNow, parseEatDateTime } from './timezone';
 import { UUID_RE } from './tickets';
 
@@ -226,6 +227,7 @@ export function registerAdsRoutes(app: Express): void {
 
 	app.post(
 		'/api/bank/ads',
+		emitOnSuccess(() => ({ type: 'content', scope: 'ads' })),
 		(req, res, next) => {
 			adsUpload(req, res, (err) => {
 				if (err) return sendJson(res, { error: err.message || 'Upload failed' }, 400);
@@ -284,6 +286,7 @@ export function registerAdsRoutes(app: Express): void {
 
 	app.put(
 		'/api/bank/ads/:id',
+		emitOnSuccess(() => ({ type: 'content', scope: 'ads' })),
 		(req, res, next) => {
 			adsUpload(req, res, (err) => {
 				if (err) return sendJson(res, { error: err.message || 'Upload failed' }, 400);
@@ -366,6 +369,7 @@ export function registerAdsRoutes(app: Express): void {
 
 	app.delete(
 		'/api/bank/ads/:id',
+		emitOnSuccess(() => ({ type: 'content', scope: 'ads' })),
 		wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);

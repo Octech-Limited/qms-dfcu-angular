@@ -1,0 +1,28 @@
+# Example systemd unit for running QMS as a worker cluster.
+# Install:  sudo cp deploy/qms.service /etc/systemd/system/qms.service && sudo systemctl daemon-reload
+# Start:    sudo systemctl enable --now qms
+# Deploy:   run `npm run build` and `npm run db:migrate`, then `sudo systemctl reload qms` (rolling restart, no downtime)
+# Adjust User, WorkingDirectory and the node path for your server.
+[Unit]
+Description=QMS (clustered Node SSR server)
+After=network.target
+
+[Service]
+Type=simple
+User=qms
+WorkingDirectory=/opt/qms
+EnvironmentFile=/opt/qms/.env
+# WORKERS = number of worker processes. Keep (WORKERS x DB_POOL_MAX) under the SQL Server connection limit.
+Environment=NODE_ENV=production
+Environment=WORKERS=4
+ExecStart=/usr/bin/node scripts/cluster.mjs
+# SIGUSR2 makes the primary replace workers one at a time.
+ExecReload=/bin/kill -USR2 $MAINPID
+Restart=always
+RestartSec=3
+# Primary gets SIGTERM, drains its workers (up to ~15s), then exits.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

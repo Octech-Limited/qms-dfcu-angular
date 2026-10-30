@@ -54,6 +54,7 @@ import {
 	getCounterDurationAverages,
 	recordCounterAvailabilityEvent,
 	serializeBankticket,
+	TicketTakenError,
 	transitionTicketService
 } from '../ticketService';
 import {
@@ -77,6 +78,9 @@ import { isCustomFeedbackLink, ratingSmsUrl, smsService } from '../sms';
 import { COUNTER_AVAILABILITY_EVENT } from '../ticketStatus';
 import { isUnavailableReason } from '../../app/features/serving/unavailable-reasons';
 import { registerAdsRoutes } from '../adsRoutes';
+import { registerRealtimeRoutes } from '../realtime/routes';
+import { publish } from '../realtime/hub';
+import { emitOnSuccess } from '../realtime/emit';
 import { printKioskTicket } from '../ticketPrinting';
 
 function wrap(fn: (req: Request, res: Response) => Promise<void>) {
@@ -123,6 +127,7 @@ function validateRatingRequest(req: Request): string | null {
 }
 
 export function registerApi(app: Express): void {
+	registerRealtimeRoutes(app);
 	app.get(
 		'/api/health',
 		wrap(async (_req, res) => {
@@ -565,14 +570,24 @@ function registerTicketRoutes(app: Express): void {
 			}
 			const nextTicket = await findClaimableTicket(counter, { includeRedirects: false });
 			if (!nextTicket) return sendJson(res, { ticket: null, alreadyServing: false, releasedDuplicates: 0 });
-			const claimed = await transitionTicketService({
-				ticketId: nextTicket.id,
-				nextTicketStatus: TICKET_STATUS.SERVING,
-				endReason: SERVICE_END_REASON.CLAIMED,
-				counterId,
-				userId: counter.userId,
-				sessionId: auth.regularSession?.sessionToken ?? null
-			});
+			let claimed;
+			try {
+				claimed = await transitionTicketService({
+					ticketId: nextTicket.id,
+					nextTicketStatus: TICKET_STATUS.SERVING,
+					expectedStatus: TICKET_STATUS.NOT_SERVED,
+					endReason: SERVICE_END_REASON.CLAIMED,
+					counterId,
+					userId: counter.userId,
+					sessionId: auth.regularSession?.sessionToken ?? null
+				});
+			} catch (error) {
+				// Another counter claimed it first; the client treats null as "nothing yet" and retries.
+				if (error instanceof TicketTakenError) {
+					return sendJson(res, { ticket: null, alreadyServing: false, releasedDuplicates: 0 });
+				}
+				throw error;
+			}
 			await recordActivity({
 				action: 'serving.ticket.claim',
 				ticketId: claimed.id,
@@ -597,6 +612,7 @@ function registerTicketRoutes(app: Express): void {
 				createdAt: now,
 				updatedAt: now
 			});
+			publish({ type: 'announcements-audio', branchId: claimed.branchId });
 			sendJson(res, { ticket: serializeBankticket(claimed), alreadyServing: false, releasedDuplicates: 0 });
 		})
 	);
@@ -828,6 +844,8 @@ function registerTicketRoutes(app: Express): void {
 					});
 				}
 				const [updated] = await db.select().top(1).from(banktickets).where(eq(banktickets.id, ticket.id));
+				publish({ type: 'tickets', branchId: ticket.branchId, queueId: ticket.queueId, counterId: ticket.counterId });
+				if (body.callAgain) publish({ type: 'announcements-audio', branchId: ticket.branchId });
 				return sendJson(res, { success: true, data: serializeBankticket(updated) });
 			}
 			if (body.redirectToCounterId) {
@@ -925,6 +943,7 @@ function registerTicketRoutes(app: Express): void {
 			}
 			await db.update(banktickets).set(patch).where(eq(banktickets.id, ticket.id));
 			const [updated] = await db.select().top(1).from(banktickets).where(eq(banktickets.id, ticket.id));
+			publish({ type: 'tickets', branchId: ticket.branchId, queueId: updated?.queueId ?? ticket.queueId, counterId: ticket.counterId });
 			return sendJson(res, { success: true, data: serializeBankticket(updated) });
 		})
 	);
@@ -1269,7 +1288,7 @@ function registerOrgRoutes(app: Express): void {
 
 	app.post(
 		'/api/bank/settings',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'settings' })), wrap(async (req, res) => {
 			const [existing] = await db.select({ id: bankSettings.id }).top(1).from(bankSettings);
 			if (existing) {
 				const auth = await requireAuth();
@@ -1317,7 +1336,7 @@ function registerOrgRoutes(app: Express): void {
 
 	app.post(
 		'/api/bank/settings/images',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'settings' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const filename = path.basename(String(req.body?.filename || `upload-${Date.now()}`));
@@ -1332,7 +1351,7 @@ function registerOrgRoutes(app: Express): void {
 		})
 	);
 
-	app.put('/api/bank/settings', wrap(async (req, res) => {
+	app.put('/api/bank/settings', emitOnSuccess(() => ({ type: 'content', scope: 'settings' })), wrap(async (req, res) => {
 		const auth = await requireAuth();
 		if (auth.error) return sendAuthError(res, auth.error);
 		req.url = '/api/bank/settings';
@@ -1414,7 +1433,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/branches/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess((req) => ({ type: 'content', scope: 'branch', branchId: String(req.params['id'] ?? '') || null })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = { ...req.body };
@@ -1434,7 +1453,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/branches/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess((req) => ({ type: 'content', scope: 'branch', branchId: String(req.params['id'] ?? '') || null })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.delete(branches).where(eq(branches.id, p(req, 'id')));
@@ -1623,7 +1642,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.post(
 		'/api/bank/queues',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'queues' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
@@ -1679,7 +1698,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/queues/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'queues' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
@@ -1737,7 +1756,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/queues/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'queues' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await deleteQueueBranches(p(req, 'id'));
@@ -1963,7 +1982,7 @@ function registerOrgRoutes(app: Express): void {
 
 	app.post(
 		'/api/bank/counter',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'counters' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
@@ -2012,7 +2031,7 @@ function registerOrgRoutes(app: Express): void {
 
 	app.put(
 		'/api/bank/counter',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'counters' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const counterId = auth.session.counterId;
@@ -2121,7 +2140,7 @@ function registerOrgRoutes(app: Express): void {
 
 	app.put(
 		'/api/bank/counter/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'counters' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const session = auth.session;
@@ -2250,7 +2269,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.post(
 		'/api/bank/exchange-rates',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'rates' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = req.body ?? {};
@@ -2301,7 +2320,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/exchange-rates/reorder',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'rates' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const ids: string[] =
@@ -2318,7 +2337,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/exchange-rates/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'rates' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const body = { ...req.body };
@@ -2352,7 +2371,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/exchange-rates/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'rates' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.delete(exchangeRates).where(eq(exchangeRates.id, p(req, 'id')));
@@ -2372,7 +2391,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.post(
 		'/api/bank/announcements',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'marquee' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const id = uuidV7();
@@ -2389,7 +2408,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/announcements/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'marquee' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.update(announcements).set(req.body).where(eq(announcements.id, p(req, 'id')));
@@ -2399,7 +2418,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/announcements/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'marquee' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.delete(announcements).where(eq(announcements.id, p(req, 'id')));
@@ -2417,7 +2436,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.post(
 		'/api/bank/announcement-types',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'marquee' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const id = uuidV7();
@@ -2434,7 +2453,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/announcement-types/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'marquee' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.update(announcementTypes).set(req.body).where(eq(announcementTypes.id, p(req, 'id')));
@@ -2444,7 +2463,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/announcement-types/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'marquee' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.delete(announcementTypes).where(eq(announcementTypes.id, p(req, 'id')));
@@ -2462,7 +2481,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.post(
 		'/api/bank/social-media',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'social' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			const id = uuidV7();
@@ -2478,7 +2497,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.put(
 		'/api/bank/social-media/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'social' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.update(socialMedia).set(req.body).where(eq(socialMedia.id, p(req, 'id')));
@@ -2488,7 +2507,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/social-media/:id',
-		wrap(async (req, res) => {
+		emitOnSuccess(() => ({ type: 'content', scope: 'social' })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db.delete(socialMedia).where(eq(socialMedia.id, p(req, 'id')));
@@ -2858,7 +2877,7 @@ function registerOrgRoutes(app: Express): void {
 	);
 	app.delete(
 		'/api/bank/sessions/:userId',
-		wrap(async (req, res) => {
+		emitOnSuccess((req) => ({ type: 'session', userId: String(req.params['userId'] ?? '') })), wrap(async (req, res) => {
 			const auth = await requireAuth();
 			if (auth.error) return sendAuthError(res, auth.error);
 			await db

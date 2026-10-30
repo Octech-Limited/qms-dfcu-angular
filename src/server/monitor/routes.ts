@@ -1,6 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { Express, NextFunction, Request, Response } from 'express';
-import { getLive, getRings, getSnapshot, recordClientBatch, recordError } from './collector';
+import { recordClientBatch, recordError } from './collector';
+import { getClusterReport } from './clusterReport';
 import { DASHBOARD_HTML } from './dashboard';
 import { computeInsights } from './insights';
 import { clientIp } from './requestMonitor';
@@ -125,17 +126,33 @@ export function registerMonitorRoutes(app: Express): void {
 		res.type('html').send(DASHBOARD_HTML);
 	});
 
-	app.get('/api/monitor/summary', requireToken, (req, res) => {
-		const snapshot = getSnapshot(windowOf(req));
-		res.json({ live: getLive(), snapshot, insights: computeInsights(snapshot) });
+	app.get('/api/monitor/summary', requireToken, async (req, res, next) => {
+		try {
+			const report = await getClusterReport(windowOf(req));
+			res.json({ live: report.live, snapshot: report.snapshot, insights: computeInsights(report.snapshot) });
+		} catch (error) {
+			next(error);
+		}
 	});
-	app.get('/api/monitor/insights', requireToken, (req, res) => {
-		res.json(computeInsights(getSnapshot(windowOf(req))));
+	app.get('/api/monitor/insights', requireToken, async (req, res, next) => {
+		try {
+			res.json(computeInsights((await getClusterReport(windowOf(req))).snapshot));
+		} catch (error) {
+			next(error);
+		}
 	});
-	app.get('/api/monitor/recent', requireToken, (_req, res) => {
-		res.json(getRings());
+	app.get('/api/monitor/recent', requireToken, async (_req, res, next) => {
+		try {
+			res.json((await getClusterReport(15)).rings);
+		} catch (error) {
+			next(error);
+		}
 	});
-	app.get('/api/monitor/pool', requireToken, (_req, res) => {
-		res.json(getLive().pool);
+	app.get('/api/monitor/pool', requireToken, async (_req, res, next) => {
+		try {
+			res.json((await getClusterReport(15)).live.pool);
+		} catch (error) {
+			next(error);
+		}
 	});
 }

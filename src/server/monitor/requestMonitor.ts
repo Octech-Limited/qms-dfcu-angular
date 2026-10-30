@@ -55,7 +55,8 @@ function pageOf(req: Request): string {
 /** Mount first. Times every request and splits the time into DB vs app. */
 export function requestMonitorMiddleware(req: Request, res: Response, next: NextFunction): void {
 	// The monitor's own traffic must not pollute the stats it reports.
-	if (req.path.startsWith('/api/monitor') || req.path === '/monitor') {
+	// SSE streams stay open for hours; counting them would wreck inflight and latency stats.
+	if (req.path.startsWith('/api/monitor') || req.path === '/monitor' || req.path === '/api/events') {
 		next();
 		return;
 	}

@@ -3,6 +3,7 @@ export const UNAVAILABLE_REASONS = [
   'Lunch',
   'Consultation',
   'Meeting',
+  'End of Day',
 ] as const;
 
 export type UnavailableReason = (typeof UNAVAILABLE_REASONS)[number];

@@ -14,6 +14,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ApiService } from '../../core/api.service';
+import { RealtimeService } from '../../core/realtime.service';
 import { eatNow } from '../../core/timezone';
 
 type Ad = {
@@ -119,6 +120,8 @@ export class AdCarouselComponent implements OnInit, OnChanges, OnDestroy {
   readonly ads = signal<Ad[]>([]);
   readonly index = signal(0);
 
+  private readonly realtime = inject(RealtimeService);
+  private unsubscribeRealtime?: () => void;
   private pollTimer?: ReturnType<typeof setInterval>;
   private imageTimer?: ReturnType<typeof setTimeout>;
   private ytPlayer: { destroy: () => void; mute: () => void; unMute: () => void } | null = null;
@@ -135,12 +138,15 @@ export class AdCarouselComponent implements OnInit, OnChanges, OnDestroy {
     if (!isPlatformBrowser(this.platform)) return;
     this.loadYtApi();
     void this.fetchAds(true);
-    this.pollTimer = setInterval(() => void this.fetchAds(false), 5000);
+    this.bindRealtime();
+    // Safety net only: ad edits arrive as server events.
+    this.pollTimer = setInterval(() => void this.fetchAds(false), 60_000);
   }
 
   ngOnChanges(changes: SimpleChanges) {
     if (changes['branchId'] && !changes['branchId'].firstChange && this.branchId) {
       this.index.set(0);
+      this.bindRealtime();
       void this.fetchAds(true);
     }
     if (changes['branchId']) {
@@ -148,7 +154,22 @@ export class AdCarouselComponent implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private bindRealtime() {
+    this.unsubscribeRealtime?.();
+    if (!this.branchId) return;
+    this.unsubscribeRealtime = this.realtime.subscribe(
+      ['content', 'resync'],
+      (events) => {
+        if (events.some((e) => e.type === 'resync' || e.scope === 'ads' || e.scope === 'branch')) {
+          void this.fetchAds(false);
+        }
+      },
+      this.branchId,
+    );
+  }
+
   ngOnDestroy() {
+    this.unsubscribeRealtime?.();
     if (this.pollTimer) clearInterval(this.pollTimer);
     if (this.imageTimer) clearTimeout(this.imageTimer);
     this.destroyYt();

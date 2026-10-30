@@ -13,6 +13,7 @@ import { registerApi } from './server/api';
 import { ensureDb } from './server/db';
 import { expireTicketsPastCreationDay } from './server/ticketService';
 import { logger } from './server/logger';
+import { initClusterWorker, isClusterWorker, isLeader } from './server/cluster';
 import { requestMonitorMiddleware } from './server/monitor/requestMonitor';
 import { registerMonitorRoutes } from './server/monitor/routes';
 import { recordError, startMonitor, timedJob } from './server/monitor/collector';
@@ -101,6 +102,8 @@ function startTicketExpiration() {
 	if (ticketExpirationStarted) return;
 	ticketExpirationStarted = true;
 	const run = () => {
+		// In a cluster only the leader worker sweeps; leadership moves if that worker dies.
+		if (!isLeader()) return;
 		void timedJob('ticket-expiry-sweep', () => ensureDb().then(() => expireTicketsPastCreationDay())).catch((error) =>
 			logger.error('Ticket expiration sweep failed', error)
 		);
@@ -109,14 +112,23 @@ function startTicketExpiration() {
 	setInterval(run, 60_000);
 }
 
-if (isMainModule(import.meta.url) || process.env['pm_id']) {
+if (isMainModule(import.meta.url) || process.env['pm_id'] || isClusterWorker) {
 	const port = Number(process.env['PORT'] || 4000);
 	process.env['PORT'] = String(port); // SSR API calls read this to reach the server over loopback
 	const host = process.env['HOST'] || '0.0.0.0';
-	app.listen(port, host, (error) => {
+	const server = app.listen(port, host, (error) => {
 		if (error) throw error;
 		console.log(`Node Express server listening on http://${host}:${port}`);
 		startTicketExpiration();
+	});
+	initClusterWorker(() => {
+		// Stop taking new connections, let in-flight requests finish, then drop long-lived
+		// streams (SSE clients reconnect to another worker and resync).
+		server.close();
+		server.closeIdleConnections();
+		setTimeout(() => server.closeAllConnections(), 5000).unref();
+		server.once('close', () => process.kill(process.pid, 'SIGTERM'));
+		setTimeout(() => process.kill(process.pid, 'SIGTERM'), 10_000).unref();
 	});
 } else {
 	startTicketExpiration();

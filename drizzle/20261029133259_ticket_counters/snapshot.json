@@ -1,0 +1,3221 @@
+{
+  "version": "2",
+  "dialect": "mssql",
+  "id": "0e9882a5-d2c7-47aa-a195-efd338f0b5bd",
+  "prevIds": [
+    "d3ee8033-1f34-462f-b1a5-d23767a2e2fb"
+  ],
+  "ddl": [
+    {
+      "name": "ad_branches",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "ads",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "announcement_types",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "announcements",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "audit_logs",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "settings",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "banktickets",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "branches",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "counter_availability_events",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "counters",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "exchange_rates",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "logs",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "queue_branches",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "queues",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "roles",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "social_media",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "sub_menu_items",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "sub_sub_menu_items",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "ticket_announcements",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "ticket_counters",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "ticket_services",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "user_sessions",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "name": "users",
+      "entityType": "tables",
+      "schema": "dbo"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ad_branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "adId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ad_branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ad_branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "image",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "video",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "youtubeUrl",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "isLive",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "validFrom",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "validUntil",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ads"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcement_types"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcement_types"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "backgroundColor",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcement_types"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "textColor",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcement_types"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcement_types"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "text",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "type",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcements"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "isActive",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcements"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "collectionName",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "documentId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "operation",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "performedBy",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "description",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "before",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "after",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "metadata",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "sessionId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "actorType",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "category",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "action",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "outcome",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "ticketId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "ticketServiceId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "counterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "audit_logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "companyType",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "companyName",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "contact",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "timezone",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "defaultLanguage",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "notificationText",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "logoImage",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "password",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "settings"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketNo",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "queueId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "subItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "subSubItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "issueDescription",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "tinyint",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "rating",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "ratingComment",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "justifyReason",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketStatus",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "counterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "currentServiceId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "pendingRedirectAcceptance",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "callAgain",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "language",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "phoneNumber",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "templateId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "oldContacts",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "multipleTransactions",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "notServedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "servedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "notServedDuration",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "servingDuration",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "holdDuration",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "totalDuration",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "banktickets"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "address",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "localNetworkAddress",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "databaseHost",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "databaseName",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "databaseUser",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "databasePassword",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "kioskUsername",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "kioskPassword",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "kioskIpAddress",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "platform",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "hallDisplayUsername",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "hallDisplayPassword",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "counterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "eventType",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "reason",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "at",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counter_availability_events"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "counterNumber",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "queueId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "subItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "subSubItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "available",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "unavailableReason",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "countryName",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "countryCode",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "currencyCode",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "float",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "buyingRate",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "float",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "sellingRate",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "displayOrder",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "exchange_rates"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "action",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "details",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "logs"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "logs"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "logs"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queue_branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "queueId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queue_branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queue_branches"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queues"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queues"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queues"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queues"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "queues"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "roles"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "roles"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "permissions",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "roles"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "roles"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "roles"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "social_media"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "platform",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "social_media"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "handle",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "social_media"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "social_media"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_menu_items"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "queueId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_menu_items"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_menu_items"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "priority",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_menu_items"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_menu_items"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_menu_items"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_sub_menu_items"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "subMenuItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_sub_menu_items"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "name",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_sub_menu_items"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "priority",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_sub_menu_items"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_sub_menu_items"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "sub_sub_menu_items"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketNo",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "counterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "int",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "counterNumber",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "announcementType",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "language",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "attemptNumber",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "playStartedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "playCompletedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "errorMessage",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketStatus",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "callAgain",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "previousStatus",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "hallDisplayId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(max)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "audioFiles",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "int",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "duration",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "queuedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_announcements"
+    },
+    {
+      "type": "nvarchar(64)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_counters"
+    },
+    {
+      "type": "nvarchar(10)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "day",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_counters"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "lastNumber",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_counters"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "sequence",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "ticketStatus",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "counterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "queueId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "subItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "subSubItemId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "startedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "endedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "int",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "duration",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "holdComment",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "redirectedFromCounterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "redirectedToCounterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "endReason",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "sessionId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "ticket_services"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "userId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "actorType",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "counterId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "loginMethod",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "startedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "endedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "endReason",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "user_sessions"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "id",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "firstName",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "lastName",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "email",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "username",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "image",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "password",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "roleId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "branchId",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "bit",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "status",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "nvarchar(1000)",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "activeSessionToken",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "datetime2",
+      "notNull": false,
+      "generated": null,
+      "identity": null,
+      "name": "lastSessionAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "createdAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "type": "datetime2",
+      "notNull": true,
+      "generated": null,
+      "identity": null,
+      "name": "updatedAt",
+      "schema": "dbo",
+      "entityType": "columns",
+      "table": "users"
+    },
+    {
+      "columns": [
+        {
+          "value": "adId",
+          "isExpression": false
+        },
+        {
+          "value": "branchId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "name": "ad_branches_adId_branchId_key",
+      "entityType": "indexes",
+      "table": "ad_branches",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "sessionId",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "audit_logs_sessionId_createdAt_idx",
+      "entityType": "indexes",
+      "table": "audit_logs",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "userId",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "audit_logs_userId_createdAt_idx",
+      "entityType": "indexes",
+      "table": "audit_logs",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "action",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "audit_logs_action_createdAt_idx",
+      "entityType": "indexes",
+      "table": "audit_logs",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "branchId",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "audit_logs_branchId_createdAt_idx",
+      "entityType": "indexes",
+      "table": "audit_logs",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "ticketId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "audit_logs_ticketId_idx",
+      "entityType": "indexes",
+      "table": "audit_logs",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "category",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "audit_logs_category_createdAt_idx",
+      "entityType": "indexes",
+      "table": "audit_logs",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "currentServiceId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "banktickets_currentServiceId_idx",
+      "entityType": "indexes",
+      "table": "banktickets",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "branchId",
+          "isExpression": false
+        },
+        {
+          "value": "ticketStatus",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "banktickets_branchId_ticketStatus_createdAt_idx",
+      "entityType": "indexes",
+      "table": "banktickets",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "counterId",
+          "isExpression": false
+        },
+        {
+          "value": "ticketStatus",
+          "isExpression": false
+        },
+        {
+          "value": "createdAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "banktickets_counterId_ticketStatus_createdAt_idx",
+      "entityType": "indexes",
+      "table": "banktickets",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "counterId",
+          "isExpression": false
+        },
+        {
+          "value": "at",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "counter_availability_events_counterId_at_idx",
+      "entityType": "indexes",
+      "table": "counter_availability_events",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "subItemId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "counters_subItemId_idx",
+      "entityType": "indexes",
+      "table": "counters",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "subSubItemId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "counters_subSubItemId_idx",
+      "entityType": "indexes",
+      "table": "counters",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "displayOrder",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "exchange_rates_displayOrder_idx",
+      "entityType": "indexes",
+      "table": "exchange_rates",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "queueId",
+          "isExpression": false
+        },
+        {
+          "value": "branchId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "name": "queue_branches_queueId_branchId_key",
+      "entityType": "indexes",
+      "table": "queue_branches",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "ticketId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_announcements_ticketId_idx",
+      "entityType": "indexes",
+      "table": "ticket_announcements",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "branchId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_announcements_branchId_idx",
+      "entityType": "indexes",
+      "table": "ticket_announcements",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "status",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_announcements_status_idx",
+      "entityType": "indexes",
+      "table": "ticket_announcements",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "queuedAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_announcements_queuedAt_idx",
+      "entityType": "indexes",
+      "table": "ticket_announcements",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "ticketId",
+          "isExpression": false
+        },
+        {
+          "value": "attemptNumber",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_announcements_ticketId_attemptNumber_idx",
+      "entityType": "indexes",
+      "table": "ticket_announcements",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "ticketId",
+          "isExpression": false
+        },
+        {
+          "value": "sequence",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "name": "ticket_services_ticketId_sequence_key",
+      "entityType": "indexes",
+      "table": "ticket_services",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "ticketId",
+          "isExpression": false
+        },
+        {
+          "value": "endedAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_services_ticketId_endedAt_idx",
+      "entityType": "indexes",
+      "table": "ticket_services",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "counterId",
+          "isExpression": false
+        },
+        {
+          "value": "ticketStatus",
+          "isExpression": false
+        },
+        {
+          "value": "endedAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_services_counterId_ticketStatus_endedAt_idx",
+      "entityType": "indexes",
+      "table": "ticket_services",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "sessionId",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "ticket_services_sessionId_idx",
+      "entityType": "indexes",
+      "table": "ticket_services",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "userId",
+          "isExpression": false
+        },
+        {
+          "value": "startedAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "user_sessions_userId_startedAt_idx",
+      "entityType": "indexes",
+      "table": "user_sessions",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "branchId",
+          "isExpression": false
+        },
+        {
+          "value": "startedAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "user_sessions_branchId_startedAt_idx",
+      "entityType": "indexes",
+      "table": "user_sessions",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "actorType",
+          "isExpression": false
+        },
+        {
+          "value": "startedAt",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "user_sessions_actorType_startedAt_idx",
+      "entityType": "indexes",
+      "table": "user_sessions",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "email",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "name": "users_email_key",
+      "entityType": "indexes",
+      "table": "users",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "username",
+          "isExpression": false
+        }
+      ],
+      "isUnique": true,
+      "where": null,
+      "name": "users_username_key",
+      "entityType": "indexes",
+      "table": "users",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        {
+          "value": "activeSessionToken",
+          "isExpression": false
+        }
+      ],
+      "isUnique": false,
+      "where": null,
+      "name": "users_activeSessionToken_idx",
+      "entityType": "indexes",
+      "table": "users",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        "queueId"
+      ],
+      "nameExplicit": false,
+      "schemaTo": "dbo",
+      "tableTo": "queues",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "queue_branches_queueId_queues_id_fk",
+      "entityType": "fks",
+      "table": "queue_branches",
+      "schema": "dbo"
+    },
+    {
+      "columns": [
+        "branchId"
+      ],
+      "nameExplicit": false,
+      "schemaTo": "dbo",
+      "tableTo": "branches",
+      "columnsTo": [
+        "id"
+      ],
+      "onUpdate": "NO ACTION",
+      "onDelete": "NO ACTION",
+      "name": "queue_branches_branchId_branches_id_fk",
+      "entityType": "fks",
+      "table": "queue_branches",
+      "schema": "dbo"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "branchId",
+        "day"
+      ],
+      "name": "ticket_counters_pkey",
+      "entityType": "pks",
+      "table": "ticket_counters",
+      "schema": "dbo"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "ad_branches_pkey",
+      "table": "ad_branches",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "ads_pkey",
+      "table": "ads",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "announcement_types_pkey",
+      "table": "announcement_types",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "announcements_pkey",
+      "table": "announcements",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "audit_logs_pkey",
+      "table": "audit_logs",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "settings_pkey",
+      "table": "settings",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "banktickets_pkey",
+      "table": "banktickets",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "branches_pkey",
+      "table": "branches",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "counter_availability_events_pkey",
+      "table": "counter_availability_events",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "counters_pkey",
+      "table": "counters",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "exchange_rates_pkey",
+      "table": "exchange_rates",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "logs_pkey",
+      "table": "logs",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "queue_branches_pkey",
+      "table": "queue_branches",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "queues_pkey",
+      "table": "queues",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "roles_pkey",
+      "table": "roles",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "social_media_pkey",
+      "table": "social_media",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "sub_menu_items_pkey",
+      "table": "sub_menu_items",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "sub_sub_menu_items_pkey",
+      "table": "sub_sub_menu_items",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "ticket_announcements_pkey",
+      "table": "ticket_announcements",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "ticket_services_pkey",
+      "table": "ticket_services",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "user_sessions_pkey",
+      "table": "user_sessions",
+      "schema": "dbo",
+      "entityType": "pks"
+    },
+    {
+      "nameExplicit": false,
+      "columns": [
+        "id"
+      ],
+      "name": "users_pkey",
+      "table": "users",
+      "schema": "dbo",
+      "entityType": "pks"
+    }
+  ],
+  "renames": []
+}

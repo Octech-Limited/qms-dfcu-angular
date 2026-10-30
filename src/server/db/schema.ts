@@ -6,6 +6,7 @@ import {
 	int,
 	mssqlTable,
 	nvarchar,
+	primaryKey,
 	tinyint,
 	uniqueIndex
 } from 'drizzle-orm/mssql-core';
@@ -402,3 +403,14 @@ export const socialMedia = mssqlTable('social_media', {
 	handle: str().notNull(),
 	createdAt: ts().notNull()
 });
+
+/** Last ticket sequence handed out per branch per EAT calendar day; advanced atomically in SQL. */
+export const ticketCounters = mssqlTable(
+	'ticket_counters',
+	{
+		branchId: nvarchar({ length: 64 }).notNull(),
+		day: nvarchar({ length: 10 }).notNull(),
+		lastNumber: int().notNull()
+	},
+	(t) => [primaryKey({ columns: [t.branchId, t.day] })]
+);

@@ -133,12 +133,11 @@ export class LandingPage implements OnInit {
       const settings = await this.fetchSettings();
       if (!settings) {
         await this.router.navigateByUrl('/settingsForm');
-      } else if (settings.companyType === 'Hospital') {
+      } else if (settings.companyType?.trim().toLowerCase() === 'hospital') {
         await this.router.navigateByUrl('/hospital/login');
-      } else if (settings.companyType === 'Bank') {
-        await this.router.navigateByUrl('/login');
       } else {
-        await this.router.navigateByUrl('/settingsForm');
+        // Settings exist, so setup is done: go to login whatever the stored companyType casing is.
+        await this.router.navigateByUrl('/login');
       }
     } finally {
       this.isLoading.set(false);

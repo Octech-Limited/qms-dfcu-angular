@@ -2,6 +2,7 @@ import { Injectable, OnDestroy, inject, signal, computed } from '@angular/core';
 import { ApiService } from '../../core/api.service';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
+import { RealtimeService } from '../../core/realtime.service';
 import { eatCalendarDate, fromEatStorage } from '../../core/timezone';
 import type {
   ActiveCounter,
@@ -22,6 +23,8 @@ export class ServingDeskService implements OnDestroy {
   private readonly api = inject(ApiService);
   private readonly session = inject(SessionService);
   private readonly toast = inject(ToastService);
+  private readonly realtime = inject(RealtimeService);
+  private unsubscribeRealtime: (() => void) | null = null;
 
   readonly loading = signal(true);
   readonly bootstrapError = signal<string | null>(null);
@@ -97,14 +100,26 @@ export class ServingDeskService implements OnDestroy {
 
   private startPolling() {
     this.stopPolling();
-    this.timers.push(setInterval(() => void this.refreshDesk(), 5000));
-    this.timers.push(setInterval(() => void this.refreshQueueCounts(), 3000));
-    this.timers.push(setInterval(() => void this.maybeAutoClaim(), 2000));
+    const branchId = this.session.session().branchId || this.activeCounter()?.branchId;
+    // Server events drive refreshes. refreshDesk also reloads queue counts and available counters.
+    this.unsubscribeRealtime = this.realtime.subscribe(
+      ['tickets', 'counters', 'resync'],
+      () => {
+        void this.refreshDesk().then(() => this.maybeAutoClaim());
+      },
+      branchId,
+    );
+    // Safety nets for missed events and guard-blocked claims.
+    this.timers.push(setInterval(() => void this.refreshDesk(), 30_000));
+    this.timers.push(setInterval(() => void this.maybeAutoClaim(), 5000));
     this.timers.push(setInterval(() => this.tickSla(), 1000));
-    this.timers.push(setInterval(() => void this.refreshAvailableCounters(), 10000));
   }
 
   private stopPolling() {
+    if (this.refreshRetryTimer) clearTimeout(this.refreshRetryTimer);
+    this.refreshRetryTimer = null;
+    this.unsubscribeRealtime?.();
+    this.unsubscribeRealtime = null;
     for (const t of this.timers) clearInterval(t);
     this.timers = [];
   }
@@ -135,8 +150,7 @@ export class ServingDeskService implements OnDestroy {
     const branchId = this.session.session().branchId || counter.branchId;
 
     try {
-      const [tickets, daily, available, counterFresh] = await Promise.all([
-        this.api.get<Ticket[]>('/api/bank/ticket', { branchId, date: today }),
+      const [tickets, available, counterFresh] = await Promise.all([
         this.api.get<Ticket[]>('/api/bank/ticket', { branchId, date: today }),
         this.api.get<AvailableCounter[]>('/api/bank/counter/available', { branchId }),
         this.api.get<ActiveCounter | null>('/api/bank/counter'),
@@ -169,7 +183,7 @@ export class ServingDeskService implements OnDestroy {
       this.heldTickets.set(held);
       this.redirectedTickets.set(redirected);
       this.ticketsServed.set(servedMine.length);
-      this.totalDailyTickets.set(Array.isArray(daily) ? daily.length : list.length);
+      this.totalDailyTickets.set(list.length);
       this.availableCounters.set(
         (Array.isArray(available) ? available : []).filter((c) => c.id !== counter.id),
       );
@@ -182,9 +196,24 @@ export class ServingDeskService implements OnDestroy {
       }
 
       await this.refreshQueueCounts();
+      this.refreshRetries = 0;
     } catch (e) {
       console.error(e);
+      this.scheduleRefreshRetry();
     }
+  }
+
+  private refreshRetryTimer: ReturnType<typeof setTimeout> | null = null;
+  private refreshRetries = 0;
+
+  /** Events replaced the 5s poll, so a failed refresh must be retried soon instead of waiting for the 30s safety net. */
+  private scheduleRefreshRetry() {
+    if (this.refreshRetryTimer || this.refreshRetries >= 6) return;
+    this.refreshRetries++;
+    this.refreshRetryTimer = setTimeout(() => {
+      this.refreshRetryTimer = null;
+      void this.refreshDesk().then(() => this.maybeAutoClaim());
+    }, Math.min(1000 * this.refreshRetries, 5000));
   }
 
   private async refreshQueueCounts() {
@@ -212,22 +241,6 @@ export class ServingDeskService implements OnDestroy {
       });
       this.queueTicketCounts.set(counts);
       this.queueStatus.set(total);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  private async refreshAvailableCounters() {
-    const branchId = this.session.session().branchId || this.activeCounter()?.branchId;
-    if (!branchId) return;
-    try {
-      const available = await this.api.get<AvailableCounter[]>('/api/bank/counter/available', {
-        branchId,
-      });
-      const counterId = this.activeCounter()?.id;
-      this.availableCounters.set(
-        (Array.isArray(available) ? available : []).filter((c) => c.id !== counterId),
-      );
     } catch {
       /* ignore */
     }

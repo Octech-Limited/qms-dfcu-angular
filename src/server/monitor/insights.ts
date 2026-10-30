@@ -76,7 +76,7 @@ export function computeInsights(s: Snapshot): Insight[] {
 			out.push({
 				severity: 'warning', id: 'event-loop', title: 'Node event loop is being blocked',
 				detail: `Event-loop lag peaked at ${ms(s.lag.maxMs)} (${s.lag.badMinutes} minute(s) above 100ms). App-side time is ${ms(appMs)} per request vs ${ms(t.avgDbMs)} DB.`,
-				advice: 'CPU-bound work in the single Node thread (bcrypt, sharp image processing, big JSON, SSR HTML buffering) delays every request. Consider PM2 cluster mode or moving the heavy work off-thread.'
+				advice: 'CPU-bound work in the single Node thread (bcrypt, sharp image processing, big JSON, SSR HTML buffering) delays every request. Consider more cluster workers (WORKERS in scripts/cluster.mjs) or moving the heavy work off-thread.'
 			});
 		} else {
 			out.push({

@@ -9,6 +9,7 @@ import {
 } from './db/schema';
 import { recordActivity } from './auditLogger';
 import { eatNow } from './timezone';
+import { publish } from './realtime/hub';
 import {
 	TICKET_STATUS,
 	SERVICE_END_REASON,
@@ -25,6 +26,11 @@ import {
 export type TransitionInput = {
 	ticketId: string;
 	nextTicketStatus: TicketStatus;
+	/**
+	 * When set, the ticket is flipped to nextTicketStatus with a single conditional UPDATE
+	 * before any other write. Throws TicketTakenError if another request got there first.
+	 */
+	expectedStatus?: TicketStatus;
 	endReason: ServiceEndReason;
 	counterId?: string | null;
 	userId?: string | null;
@@ -184,6 +190,13 @@ export async function findClaimableTicket(
 	return fifo ?? null;
 }
 
+export class TicketTakenError extends Error {
+	status = 409;
+	constructor() {
+		super('Ticket was already taken');
+	}
+}
+
 export async function transitionTicketService(input: TransitionInput) {
 	const now = eatNow();
 	const [ticket] = await db.select().top(1).from(banktickets).where(eq(banktickets.id, input.ticketId));
@@ -196,6 +209,16 @@ export async function transitionTicketService(input: TransitionInput) {
 		const error = new Error('Ticket has expired') as Error & { status?: number };
 		error.status = 409;
 		throw error;
+	}
+
+	if (input.expectedStatus) {
+		// Atomic claim: only one concurrent caller sees a row come back.
+		const won = await db
+			.update(banktickets)
+			.set({ ticketStatus: input.nextTicketStatus, counterId: input.counterId ?? ticket.counterId, updatedAt: now })
+			.output({ inserted: { id: banktickets.id } })
+			.where(and(eq(banktickets.id, ticket.id), eq(banktickets.ticketStatus, input.expectedStatus)));
+		if (won.length === 0) throw new TicketTakenError();
 	}
 
 	const [openService] = await db
@@ -325,6 +348,9 @@ export async function transitionTicketService(input: TransitionInput) {
 
 	await db.update(banktickets).set(patch).where(eq(banktickets.id, ticket.id));
 	const [updated] = await db.select().top(1).from(banktickets).where(eq(banktickets.id, ticket.id));
+	if (updated) {
+		publish({ type: 'tickets', branchId: updated.branchId, queueId: updated.queueId, counterId: updated.counterId });
+	}
 	return updated;
 }
 
@@ -454,6 +480,7 @@ export async function expireTicketsPastCreationDay(): Promise<number> {
 					updatedAt: now
 				})
 				.where(eq(banktickets.id, ticket.id));
+			publish({ type: 'tickets', branchId: ticket.branchId, queueId: ticket.queueId, counterId: ticket.counterId });
 
 			await recordActivity({
 				action: 'serving.ticket.expire',
