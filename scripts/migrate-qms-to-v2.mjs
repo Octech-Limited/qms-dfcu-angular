@@ -433,7 +433,11 @@ function buildPlan(ticket, hit, notes = []) {
 		notes.push(`${ticket.ticketNo}: inferred servingAt was after servedAt, final leg started at ${servingAt}`);
 	}
 	if (servingAtInferred && servedAt && wallMs(servingAt) > wallMs(servedAt)) {
-		throw new Error(`Ticket ${ticket.ticketNo} inferred servingAt falls after servedAt`);
+		throw new Error(
+			`Ticket ${ticket.ticketNo} inferred servingAt falls after servedAt: ` +
+				`notServedAt=${notServedAt} notServedDuration=${nsd} inferred servingAt=${servingAt} servedAt=${servedAt} ` +
+				`status=${status} copies=${(hit?.earlier?.length ?? 0) + (hit ? 1 : 0)}`
+		);
 	}
 	let segments = buildSegments({
 		status,
