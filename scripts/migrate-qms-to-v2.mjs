@@ -173,7 +173,9 @@ function buildSegments(ctx) {
 			endedAt: partial.endedAt ?? null,
 			duration: partial.duration ?? 0,
 			holdComment: partial.holdComment ?? null,
-			endReason: partial.endReason ?? null
+			endReason: partial.endReason ?? null,
+			redirectedFromCounterId: null,
+			redirectedToCounterId: null
 		});
 	};
 
@@ -291,7 +293,106 @@ function buildSegments(ctx) {
 	return segments;
 }
 
-function buildPlan(ticket, hit) {
+/**
+ * One Serving segment per earlier copy of a redirected ticket, on the counter
+ * that copy lives on, ending 'redirected'. A leg runs from its servingAt (or
+ * notServedAt + notServedDuration when servingAt is null) to its servedAt, or
+ * to the start of the next leg when it never recorded servedAt. Holds inside
+ * a leg are not split out. Returns the legs plus a wait segment before them.
+ */
+function buildLegSegments(ticket, hit, winnerStart, notes) {
+	const legs = [];
+	const copies = hit.earlier;
+	for (let i = 0; i < copies.length; i++) {
+		const { rec, counterId, userId, counterNumber } = copies[i];
+		const notServedAt = wallClock(rec.notServedAt) || wallClock(ticket.notServedAt) || wallClock(ticket.createdAt);
+		let startedAt = wallClock(rec.servingAt) || addSeconds(notServedAt, num(rec.notServedDuration));
+		const nextStart =
+			i + 1 < copies.length
+				? wallClock(copies[i + 1].rec.servingAt) || wallClock(copies[i + 1].rec.notServedAt)
+				: winnerStart;
+		let endedAt = wallClock(rec.servedAt) || nextStart || startedAt;
+		if (!startedAt || wallMs(startedAt) > wallMs(endedAt)) {
+			notes.push(`${ticket.ticketNo}: leg on counter ${counterNumber} had start after end, collapsed to a zero-length segment`);
+			startedAt = endedAt;
+		}
+		legs.push({
+			counterId,
+			userId,
+			notServedAt,
+			startedAt,
+			endedAt,
+			toCounterId: i + 1 < copies.length ? copies[i + 1].counterId : hit.counterId
+		});
+	}
+	return legs;
+}
+
+function stitchRedirects(ticket, hit, winnerSegments, notes) {
+	const winnerStart = winnerSegments[1]?.startedAt ?? null;
+	const legs = buildLegSegments(ticket, hit, winnerStart, notes);
+	const first = legs[0];
+	const out = [];
+	const add = (partial) => out.push({
+		id: crypto.randomUUID(),
+		sequence: out.length + 1,
+		ticketStatus: partial.ticketStatus,
+		counterId: partial.counterId ?? null,
+		userId: partial.userId ?? null,
+		queueId: ticket.queueId,
+		subItemId: ticket.subItemId,
+		subSubItemId: ticket.subSubItemId,
+		startedAt: partial.startedAt,
+		endedAt: partial.endedAt ?? null,
+		duration: partial.duration ?? 0,
+		holdComment: partial.holdComment ?? null,
+		endReason: partial.endReason ?? null,
+		redirectedFromCounterId: partial.redirectedFromCounterId ?? null,
+		redirectedToCounterId: partial.redirectedToCounterId ?? null
+	});
+	add({
+		ticketStatus: 'Not Served',
+		startedAt: first.notServedAt,
+		endedAt: first.startedAt,
+		duration: secondsBetween(first.notServedAt, first.startedAt),
+		endReason: 'claimed'
+	});
+	legs.forEach((leg, i) => {
+		add({
+			ticketStatus: 'Serving',
+			counterId: leg.counterId,
+			userId: leg.userId,
+			startedAt: leg.startedAt,
+			endedAt: leg.endedAt,
+			duration: secondsBetween(leg.startedAt, leg.endedAt),
+			endReason: 'redirected',
+			redirectedFromCounterId: i > 0 ? legs[i - 1].counterId : null,
+			redirectedToCounterId: leg.toCounterId
+		});
+	});
+	const lastEnd = legs[legs.length - 1].endedAt;
+	// The winner's own wait segment is replaced by the legs when it was served;
+	// a winner still waiting keeps one, restarted when the last leg ended.
+	const rest = winnerSegments[1] ? winnerSegments.slice(1) : winnerSegments.slice();
+	rest.forEach((segment, i) => {
+		let { startedAt, endedAt } = segment;
+		if (i === 0 && wallMs(startedAt) < wallMs(lastEnd)) {
+			notes.push(`${ticket.ticketNo}: final copy starts before its earlier leg ended, start moved to ${lastEnd}`);
+			startedAt = lastEnd;
+			if (endedAt && wallMs(endedAt) < wallMs(startedAt)) endedAt = startedAt;
+		}
+		add({
+			...segment,
+			startedAt,
+			endedAt,
+			duration: segment.duration,
+			redirectedFromCounterId: i === 0 ? legs[legs.length - 1].counterId : null
+		});
+	});
+	return out;
+}
+
+function buildPlan(ticket, hit, notes = []) {
 	const rec = hit?.rec ?? null;
 	const status = rec?.ticketStatus || ticket.ticketStatus;
 	if (!['Not Served', 'Serving', 'Served', 'Hold'].includes(status)) {
@@ -324,7 +425,7 @@ function buildPlan(ticket, hit) {
 	if (servingAtInferred && servedAt && wallMs(servingAt) > wallMs(servedAt)) {
 		throw new Error(`Ticket ${ticket.ticketNo} inferred servingAt falls after servedAt`);
 	}
-	const segments = buildSegments({
+	let segments = buildSegments({
 		status,
 		notServedAt,
 		servingAt,
@@ -340,6 +441,7 @@ function buildPlan(ticket, hit) {
 		subItemId: ticket.subItemId,
 		subSubItemId: ticket.subSubItemId
 	});
+	if (hit?.earlier?.length) segments = stitchRedirects(ticket, hit, segments, notes);
 	const open = segments.filter((segment) => !segment.endedAt);
 	if (TERMINAL.has(status) ? open.length !== 0 : open.length !== 1) {
 		throw new Error(`Ticket ${ticket.ticketNo} built ${open.length} open segments for status ${status}`);
@@ -367,11 +469,25 @@ function buildPlan(ticket, hit) {
 }
 
 /**
- * A redirected ticket is stored twice: a `Redirected` stub on the counter that
- * handed it off, and the live record on the counter that took it. The live
- * record is the visit. Anything else (two live copies, or only stubs) is
- * ambiguous, so it is listed and the script stops.
+ * A redirected ticket is stored on every counter it passed through. `Redirected`
+ * stubs are ignored. Among the remaining copies the furthest along wins:
+ * Served over Hold/Serving over Not Served, then the latest servedAt. The
+ * winner is the visit; every other copy is an earlier leg and becomes a
+ * redirected Serving segment on its own counter (see buildLegSegments). A tie
+ * is ambiguous, so it is listed and the script stops.
  */
+const STATUS_RANK = { Served: 3, Hold: 2, Serving: 1, 'Not Served': 0 };
+
+/** When a leg stopped: servedAt, else servingAt, else notServedAt. Used only to order legs. */
+function legEnd(rec) {
+	return wallMs(rec.servedAt) ?? wallMs(rec.servingAt) ?? wallMs(rec.notServedAt) ?? 0;
+}
+
+function compareCopies(a, b) {
+	const rank = (STATUS_RANK[b.rec.ticketStatus] ?? -1) - (STATUS_RANK[a.rec.ticketStatus] ?? -1);
+	if (rank) return rank;
+	return (wallMs(b.rec.servedAt) ?? 0) - (wallMs(a.rec.servedAt) ?? 0);
+}
 function loadVisits(counters) {
 	const found = new Map();
 	for (const counter of counters) {
@@ -400,16 +516,19 @@ function loadVisits(counters) {
 
 	const visits = new Map();
 	const ambiguous = [];
-	let redirects = 0;
+	let resolved = 0;
 	for (const [ticketId, hits] of found) {
 		if (hits.length === 1) {
 			visits.set(ticketId, hits[0]);
 			continue;
 		}
 		const live = hits.filter((hit) => hit.rec.ticketStatus !== 'Redirected');
-		if (live.length === 1) {
-			visits.set(ticketId, live[0]);
-			redirects++;
+		live.sort(compareCopies);
+		if (live.length && (live.length === 1 || compareCopies(live[0], live[1]) !== 0)) {
+			const earlier = hits.filter((hit) => hit !== live[0]);
+			earlier.sort((a, b) => legEnd(a.rec) - legEnd(b.rec));
+			visits.set(ticketId, { ...live[0], earlier });
+			resolved++;
 			continue;
 		}
 		ambiguous.push(
@@ -427,7 +546,7 @@ function loadVisits(counters) {
 			`${ambiguous.length} tickets are stored on more than one counter and have no single live copy:\n${ambiguous.join('\n')}`
 		);
 	}
-	console.log(`${redirects} redirected tickets resolved to the live copy; Redirected stubs ignored.`);
+	console.log(`${resolved} tickets stored on several counters resolved to their furthest-along copy.`);
 	return visits;
 }
 
@@ -451,6 +570,7 @@ function summarize(plans) {
 	lines.push(`servingAt inferred from notServedAt + notServedDuration: ${plans.filter((plan) => plan.servingAtInferred).length}`);
 	lines.push(`aggregateStatus ignored on tickets with no visit: ${ignoredAggregate}`);
 	lines.push(`ticket_services rows: ${segments}`);
+	lines.push(`Redirected tickets with earlier legs kept: ${plans.filter((plan) => plan.segments.some((segment) => segment.endReason === 'redirected')).length}`);
 	lines.push(`Resulting ticketStatus: ${[...byStatus.entries()].map(([k, v]) => `${k} ${v}`).join(', ')}`);
 	const changes = plans.filter((plan) => plan.previousStatus !== plan.status);
 	if (changes.length) {
@@ -764,12 +884,13 @@ async function applyMigration(tx, plans, counters) {
 				tx,
 				`INSERT INTO dbo.ticket_services (
 				   id, ticketId, sequence, ticketStatus, counterId, userId, queueId, subItemId, subSubItemId,
-				   startedAt, endedAt, duration, holdComment, endReason, createdAt, updatedAt
+				   startedAt, endedAt, duration, holdComment, endReason, redirectedFromCounterId, redirectedToCounterId,
+				   createdAt, updatedAt
 				 ) VALUES (
 				   @id, @ticketId, @sequence, @ticketStatus, @counterId, @userId, @queueId, @subItemId, @subSubItemId,
 				   CONVERT(datetime2, @startedAt),
 				   CASE WHEN @endedAt IS NULL THEN NULL ELSE CONVERT(datetime2, @endedAt) END,
-				   @duration, @holdComment, @endReason,
+				   @duration, @holdComment, @endReason, @redirectedFromCounterId, @redirectedToCounterId,
 				   CONVERT(datetime2, @createdAt),
 				   CONVERT(datetime2, @updatedAt)
 				 )`,
@@ -788,6 +909,8 @@ async function applyMigration(tx, plans, counters) {
 					duration: segment.duration,
 					holdComment: segment.holdComment,
 					endReason: segment.endReason,
+					redirectedFromCounterId: segment.redirectedFromCounterId,
+					redirectedToCounterId: segment.redirectedToCounterId,
 					createdAt: segment.startedAt,
 					updatedAt: segment.endedAt || segment.startedAt
 				}
@@ -998,12 +1121,14 @@ async function main() {
 			 FROM dbo.banktickets`
 		);
 		const visits = loadVisits(counters);
-		const plans = tickets.map((ticket) => buildPlan(ticket, visits.get(ticket.id)));
+		const notes = [];
+		const plans = tickets.map((ticket) => buildPlan(ticket, visits.get(ticket.id), notes));
 		const unknownVisits = [...visits.keys()].filter((id) => !plans.some((plan) => plan.id === id));
 		if (unknownVisits.length) {
 			throw new Error(`Counter JSON references ${unknownVisits.length} tickets that are not in banktickets`);
 		}
 		console.log(summarize(plans));
+		if (notes.length) console.log(`Adjustments:\n  ${notes.join('\n  ')}`);
 		if (!APPLY) {
 			console.log('\nDry run only. Re-run with --apply to write this database.');
 			return;
