@@ -39,7 +39,7 @@ import crypto from 'node:crypto';
 import sql from 'mssql';
 
 const APPLY = process.argv.includes('--apply');
-const DATABASE = process.argv.find((arg) => arg.startsWith('--database='))?.split('=')[1] || 'qms';
+const DATABASE = process.argv.find((arg) => arg.startsWith('--database='))?.split('=')[1] || 'QMS V2';
 const REFUSED = new Set(['qms_v2', 'qms_v2_shadow']);
 
 const DROP_COLUMNS = {
@@ -421,6 +421,16 @@ function buildPlan(ticket, hit, notes = []) {
 	}
 	if ((status === 'Serving' || status === 'Hold') && !servingAt) {
 		throw new Error(`Ticket ${ticket.ticketNo} is ${status} but is missing servingAt`);
+	}
+	if (servingAtInferred && servedAt && wallMs(servingAt) > wallMs(servedAt) && hit?.earlier?.length) {
+		// notServedDuration on a redirected ticket can span the earlier legs, so the
+		// estimate overshoots. Start the final leg where the last earlier leg ended.
+		const lastLegEnd = hit.earlier
+			.map((copy) => wallClock(copy.rec.servedAt))
+			.filter((at) => at && wallMs(at) <= wallMs(servedAt))
+			.sort((a, b) => wallMs(b) - wallMs(a))[0];
+		servingAt = lastLegEnd || servedAt;
+		notes.push(`${ticket.ticketNo}: inferred servingAt was after servedAt, final leg started at ${servingAt}`);
 	}
 	if (servingAtInferred && servedAt && wallMs(servingAt) > wallMs(servedAt)) {
 		throw new Error(`Ticket ${ticket.ticketNo} inferred servingAt falls after servedAt`);
