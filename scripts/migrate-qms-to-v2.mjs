@@ -366,8 +366,14 @@ function buildPlan(ticket, hit) {
 	};
 }
 
+/**
+ * A redirected ticket is stored twice: a `Redirected` stub on the counter that
+ * handed it off, and the live record on the counter that took it. The live
+ * record is the visit. Anything else (two live copies, or only stubs) is
+ * ambiguous, so it is listed and the script stops.
+ */
 function loadVisits(counters) {
-	const visits = new Map();
+	const found = new Map();
 	for (const counter of counters) {
 		let records;
 		try {
@@ -380,17 +386,48 @@ function loadVisits(counters) {
 		}
 		for (const rec of records) {
 			if (!rec || !rec.ticketId) throw new Error(`Counter ${counter.counterNumber} has a ticket record without ticketId`);
-			if (visits.has(rec.ticketId)) {
-				throw new Error(`Ticket ${rec.ticketId} is stored on more than one counter`);
-			}
-			visits.set(rec.ticketId, {
+			const hit = {
 				counterId: counter.id,
 				userId: counter.userId,
 				counterNumber: counter.counterNumber,
 				rec
-			});
+			};
+			const list = found.get(rec.ticketId) ?? [];
+			list.push(hit);
+			found.set(rec.ticketId, list);
 		}
 	}
+
+	const visits = new Map();
+	const ambiguous = [];
+	let redirects = 0;
+	for (const [ticketId, hits] of found) {
+		if (hits.length === 1) {
+			visits.set(ticketId, hits[0]);
+			continue;
+		}
+		const live = hits.filter((hit) => hit.rec.ticketStatus !== 'Redirected');
+		if (live.length === 1) {
+			visits.set(ticketId, live[0]);
+			redirects++;
+			continue;
+		}
+		ambiguous.push(
+			`${ticketId}: ` +
+				hits
+					.map(
+						(hit) =>
+							`counter ${hit.counterNumber} ${hit.rec.ticketStatus} servedAt=${hit.rec.servedAt ?? 'null'} pending=${hit.rec.pendingRedirectAcceptance}`
+					)
+					.join(' | ')
+		);
+	}
+	if (ambiguous.length) {
+		throw new Error(
+			`${ambiguous.length} tickets are stored on more than one counter and have no single live copy:\n${ambiguous.join('\n')}`
+		);
+	}
+	console.log(`${redirects} redirected tickets resolved to the live copy; Redirected stubs ignored.`);
 	return visits;
 }
 
