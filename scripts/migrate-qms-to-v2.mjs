@@ -433,6 +433,14 @@ function buildPlan(ticket, hit, notes = []) {
 		notes.push(`${ticket.ticketNo}: inferred servingAt was after servedAt, final leg started at ${servingAt}`);
 	}
 	if (servingAtInferred && servedAt && wallMs(servingAt) > wallMs(servedAt)) {
+		// notServedDuration is whole seconds, so the estimate can overshoot by under a second or two.
+		const overshoot = wallMs(servingAt) - wallMs(servedAt);
+		if (overshoot <= 2000) {
+			servingAt = servedAt;
+			notes.push(`${ticket.ticketNo}: inferred servingAt was ${overshoot} ms after servedAt (rounding), clamped to servedAt`);
+		}
+	}
+	if (servingAtInferred && servedAt && wallMs(servingAt) > wallMs(servedAt)) {
 		throw new Error(
 			`Ticket ${ticket.ticketNo} inferred servingAt falls after servedAt: ` +
 				`notServedAt=${notServedAt} notServedDuration=${nsd} inferred servingAt=${servingAt} servedAt=${servedAt} ` +
