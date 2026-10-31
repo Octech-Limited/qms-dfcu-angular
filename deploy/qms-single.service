@@ -1,0 +1,27 @@
+# systemd unit for running QMS as a single Node process (no cluster).
+# Install:  sudo cp deploy/qms-single.service /etc/systemd/system/qms.service && sudo systemctl daemon-reload
+# Start:    sudo systemctl enable --now qms
+# Deploy:   run `npm run build`, then `sudo systemctl restart qms` (brief downtime while the process restarts)
+# Logs:     journalctl -u qms -f
+# Adjust User, WorkingDirectory and the node path for your server.
+[Unit]
+Description=QMS (single-process Node SSR server)
+After=network.target
+
+[Service]
+Type=simple
+User=qms
+WorkingDirectory=/opt/qms
+EnvironmentFile=/opt/qms/.env
+Environment=NODE_ENV=production
+# Uncomment to override the defaults (PORT 4000, HOST 0.0.0.0) or if .env does not set them.
+#Environment=PORT=4000
+#Environment=HOST=0.0.0.0
+ExecStart=/usr/bin/node dist/qmsangular/server/server.mjs
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

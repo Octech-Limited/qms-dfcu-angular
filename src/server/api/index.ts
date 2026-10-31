@@ -1784,83 +1784,56 @@ function registerOrgRoutes(app: Express): void {
 				return sendJson(res, { error: 'Unauthorized' }, 401);
 			}
 
+			// Joins and one aggregate, not IN (...) lists: there can be more counters than the 2100
+			// parameters SQL Server accepts in one request.
 			const rows = await db
 				.select({
 					id: counters.id,
 					counterNumber: counters.counterNumber,
 					available: counters.available,
 					createdAt: counters.createdAt,
-					userId: counters.userId,
-					queueId: counters.queueId,
-					branchId: counters.branchId
+					userId: users.id,
+					username: users.username,
+					firstName: users.firstName,
+					lastName: users.lastName,
+					queueId: queues.id,
+					queueName: queues.name,
+					branchId: branches.id,
+					branchName: branches.name
 				})
 				.from(counters)
+				.leftJoin(users, eq(users.id, counters.userId))
+				.leftJoin(queues, eq(queues.id, counters.queueId))
+				.leftJoin(branches, eq(branches.id, counters.branchId))
 				.where(admin ? undefined : eq(counters.branchId, session.branchId!))
 				.orderBy(desc(counters.createdAt));
 
-			const counterIds = rows.map((r) => r.id);
-			const ticketIdsByCounter = new Map<string, Set<string>>();
-			const addTicket = (counterId: string | null | undefined, ticketId: string) => {
-				if (!counterId) return;
-				const set = ticketIdsByCounter.get(counterId) ?? new Set<string>();
-				set.add(ticketId);
-				ticketIdsByCounter.set(counterId, set);
-			};
-
-			if (counterIds.length > 0) {
-				const [serviceRows, assignedTickets] = await Promise.all([
-					db
-						.select({ counterId: ticketServices.counterId, ticketId: ticketServices.ticketId })
-						.from(ticketServices)
-						.where(inArray(ticketServices.counterId, counterIds)),
-					db
-						.select({ counterId: banktickets.counterId, id: banktickets.id })
-						.from(banktickets)
-						.where(inArray(banktickets.counterId, counterIds))
-				]);
-				for (const row of serviceRows) addTicket(row.counterId, row.ticketId);
-				for (const ticket of assignedTickets) addTicket(ticket.counterId, ticket.id);
+			const ticketCounts = new Map<string, number>();
+			if (rows.length > 0) {
+				const counted = (await db.execute(sql`
+					SELECT t.counterId AS counterId, COUNT(*) AS n
+					FROM (
+						SELECT counterId, ticketId FROM ticket_services WHERE counterId IS NOT NULL
+						UNION
+						SELECT counterId, id FROM banktickets WHERE counterId IS NOT NULL
+					) t
+					GROUP BY t.counterId
+				`)) as unknown as { recordset: { counterId: string; n: number }[] };
+				for (const row of counted.recordset) ticketCounts.set(row.counterId, row.n);
 			}
 
-			const result = [];
-			for (const row of rows) {
-				const [user] = row.userId
-					? await db
-							.select({
-								id: users.id,
-								username: users.username,
-								firstName: users.firstName,
-								lastName: users.lastName
-							})
-							.top(1)
-							.from(users)
-							.where(eq(users.id, row.userId))
-					: [null];
-				const [queue] = row.queueId
-					? await db
-							.select({ id: queues.id, name: queues.name })
-							.top(1)
-							.from(queues)
-							.where(eq(queues.id, row.queueId))
-					: [null];
-				const [branch] = row.branchId
-					? await db
-							.select({ id: branches.id, name: branches.name })
-							.top(1)
-							.from(branches)
-							.where(eq(branches.id, row.branchId))
-					: [null];
-				result.push({
-					id: row.id,
-					counterNumber: row.counterNumber,
-					available: row.available,
-					createdAt: row.createdAt,
-					ticketCount: ticketIdsByCounter.get(row.id)?.size ?? 0,
-					user: user ?? null,
-					queue: queue ?? null,
-					branch: branch ?? null
-				});
-			}
+			const result = rows.map((row) => ({
+				id: row.id,
+				counterNumber: row.counterNumber,
+				available: row.available,
+				createdAt: row.createdAt,
+				ticketCount: ticketCounts.get(row.id) ?? 0,
+				user: row.userId
+					? { id: row.userId, username: row.username, firstName: row.firstName, lastName: row.lastName }
+					: null,
+				queue: row.queueId ? { id: row.queueId, name: row.queueName } : null,
+				branch: row.branchId ? { id: row.branchId, name: row.branchName } : null
+			}));
 
 			sendJson(res, { counters: result });
 		})
